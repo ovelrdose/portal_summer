@@ -77,7 +77,7 @@ class CourseListSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'short_description', 'image', 'image_url',
-            'creator', 'subscribers_count', 'is_subscribed', 'created_at'
+            'creator', 'subscribers_count', 'is_subscribed', 'is_published', 'created_at'
         ]
 
     def get_is_subscribed(self, obj):

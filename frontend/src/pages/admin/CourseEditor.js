@@ -383,9 +383,9 @@ const CourseEditor = () => {
               <Button
                 variant="outline-secondary"
                 className="w-100"
-                onClick={() => navigate('/portal/courses')}
+                onClick={() => navigate(isEdit ? `/portal/courses/${id}` : '/portal/courses')}
               >
-                Вернуться к курсам
+                {isEdit ? 'Закончить редактирование' : 'Вернуться к курсам'}
               </Button>
             </Card.Body>
           </Card>

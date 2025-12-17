@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
 const ProfilePage = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, isTeacher, isAdmin } = useAuth();
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -15,6 +15,7 @@ const ProfilePage = () => {
     city: '',
   });
   const [myCourses, setMyCourses] = useState([]);
+  const [createdCourses, setCreatedCourses] = useState([]);
   const [passwordData, setPasswordData] = useState({
     old_password: '',
     new_password: '',
@@ -36,7 +37,10 @@ const ProfilePage = () => {
       });
     }
     loadMyCourses();
-  }, [user]);
+    if (isTeacher || isAdmin) {
+      loadCreatedCourses();
+    }
+  }, [user, isTeacher, isAdmin]);
 
   const loadMyCourses = async () => {
     try {
@@ -44,6 +48,15 @@ const ProfilePage = () => {
       setMyCourses(response.data);
     } catch (error) {
       console.error('Error loading courses:', error);
+    }
+  };
+
+  const loadCreatedCourses = async () => {
+    try {
+      const response = await coursesAPI.getCreatedCourses();
+      setCreatedCourses(response.data);
+    } catch (error) {
+      console.error('Error loading created courses:', error);
     }
   };
 
@@ -181,6 +194,49 @@ const ProfilePage = () => {
                 <p className="text-muted">Вы пока не записаны ни на один курс</p>
               )}
             </Tab>
+
+            {(isTeacher || isAdmin) && (
+              <Tab eventKey="created" title="Созданные курсы">
+                {createdCourses.length > 0 ? (
+                  <Row>
+                    {createdCourses.map((course) => (
+                      <Col md={6} key={course.id} className="mb-3">
+                        <Card>
+                          <Card.Body>
+                            <Card.Title>
+                              {course.title}
+                              {!course.is_published && (
+                                <Badge bg="warning" text="dark" className="ms-2">
+                                  Черновик
+                                </Badge>
+                              )}
+                            </Card.Title>
+                            <Card.Text className="text-muted small">
+                              {course.short_description}
+                            </Card.Text>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                              <small className="text-muted">
+                                {course.subscribers_count} подписчиков
+                              </small>
+                            </div>
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              as={Link}
+                              to={`/portal/courses/${course.id}`}
+                            >
+                              Перейти к курсу
+                            </Button>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                ) : (
+                  <p className="text-muted">Вы еще не создали ни одного курса</p>
+                )}
+              </Tab>
+            )}
 
             <Tab eventKey="profile" title="Редактирование">
               <Card>

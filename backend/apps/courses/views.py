@@ -164,6 +164,20 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsTeacher])
+    def created_courses(self, request):
+        """Курсы, созданные текущим пользователем"""
+        courses = Course.objects.filter(creator=request.user)
+        serializer = CourseListSerializer(courses, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsTeacher])
+    def drafts(self, request):
+        """Черновики курсов текущего пользователя"""
+        drafts = Course.objects.filter(creator=request.user, is_published=False)
+        serializer = CourseListSerializer(drafts, many=True, context={'request': request})
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'], permission_classes=[IsCourseOwnerOrAdmin])
     def publish(self, request, pk=None):
         course = self.get_object()
