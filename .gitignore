@@ -1,0 +1,75 @@
+# Claude Code local settings
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm/
+.yarn/
+
+# Build
+build/
+dist/
+*.egg
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Docker
+*.log
+
+# Temp files
+docs/bug_log
+*.tmp
+*.temp
+*.bak
+*~
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Frontend specific
+frontend/build/
+frontend/.env.local
+frontend/.env.production.local
+
+# Backend specific
+backend/staticfiles/
+backend/media/
