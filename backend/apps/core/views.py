@@ -23,8 +23,8 @@ def users_by_grade(request):
 def popular_courses(request):
     """Статистика по популярным курсам"""
     courses = Course.objects.filter(is_published=True).annotate(
-        subs_count=Count('subscribers')
-    ).order_by('-subs_count')[:10]
+        subs_count=Count('subscriptions')
+    ).order_by('-subs_count', '-created_at')[:10]
 
     data = [
         {

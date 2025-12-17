@@ -89,6 +89,8 @@ class CourseViewSet(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [IsTeacher()]
+        if self.action in ['subscribe', 'unsubscribe']:
+            return [permissions.IsAuthenticated()]
         return [IsCourseOwnerOrAdmin()]
 
     def perform_create(self, serializer):

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Spinner, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner, Badge, Alert, Toast, ToastContainer } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,6 +9,8 @@ const PortalPage = () => {
   const [myCourses, setMyCourses] = useState([]);
   const [latestCourses, setLatestCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subscribingId, setSubscribingId] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', variant: 'success' });
 
   useEffect(() => {
     loadData();
@@ -30,11 +32,17 @@ const PortalPage = () => {
   };
 
   const handleSubscribe = async (courseId) => {
+    setSubscribingId(courseId);
     try {
       await coursesAPI.subscribe(courseId);
+      setToast({ show: true, message: 'Вы успешно записались на курс!', variant: 'success' });
       loadData();
     } catch (error) {
       console.error('Error subscribing:', error);
+      const errorMessage = error.response?.data?.detail || 'Ошибка при записи на курс. Попробуйте еще раз.';
+      setToast({ show: true, message: errorMessage, variant: 'danger' });
+    } finally {
+      setSubscribingId(null);
     }
   };
 
@@ -134,12 +142,31 @@ const PortalPage = () => {
                       Перейти
                     </Button>
                   ) : (
-                    <Button
-                      variant="success"
-                      onClick={() => handleSubscribe(course.id)}
-                    >
-                      Записаться
-                    </Button>
+                    <div className="d-flex gap-2">
+                      <Button
+                        variant="outline-primary"
+                        as={Link}
+                        to={`/portal/courses/${course.id}`}
+                        className="flex-grow-1"
+                      >
+                        Подробнее
+                      </Button>
+                      <Button
+                        variant="success"
+                        onClick={() => handleSubscribe(course.id)}
+                        className="flex-grow-1"
+                        disabled={subscribingId === course.id}
+                      >
+                        {subscribingId === course.id ? (
+                          <>
+                            <Spinner animation="border" size="sm" className="me-2" />
+                            Подписка...
+                          </>
+                        ) : (
+                          'Записаться'
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </Card.Footer>
               </Card>
@@ -147,6 +174,19 @@ const PortalPage = () => {
           ))}
         </Row>
       </section>
+
+      {/* Toast notifications */}
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          show={toast.show}
+          onClose={() => setToast({ ...toast, show: false })}
+          delay={3000}
+          autohide
+          bg={toast.variant}
+        >
+          <Toast.Body className="text-white">{toast.message}</Toast.Body>
+        </Toast>
+      </ToastContainer>
     </Container>
   );
 };
