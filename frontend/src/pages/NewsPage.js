@@ -13,10 +13,12 @@ const NewsPage = () => {
   useEffect(() => {
     loadTags();
     loadNews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     loadNews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTag, searchQuery]);
 
   const loadTags = async () => {

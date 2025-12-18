@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container, Row, Col, Card, Form, Button, Spinner, Alert,
-  ListGroup, Modal, Badge
+  Modal, Badge, Accordion
 } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
+import BlockEditor from '../../components/BlockEditor';
 
 const CourseEditor = () => {
   const { id } = useParams();
@@ -25,21 +26,38 @@ const CourseEditor = () => {
 
   // Modal states
   const [showSectionModal, setShowSectionModal] = useState(false);
-  const [showElementModal, setShowElementModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
-  const [editingElement, setEditingElement] = useState(null);
-  const [selectedSectionId, setSelectedSectionId] = useState(null);
-
   const [sectionForm, setSectionForm] = useState({ title: '', order: 0 });
-  const [elementForm, setElementForm] = useState({
-    content_type: 'text',
-    title: '',
-    text_content: '',
-    link_url: '',
-    link_text: '',
-    homework_description: '',
-    order: 0,
-  });
+
+  // BlockEditor states
+  const [sectionBlocks, setSectionBlocks] = useState({}); // { sectionId: blocks[] }
+  const [savingSectionId, setSavingSectionId] = useState(null);
+  const [expandedSection, setExpandedSection] = useState(null);
+
+  // Преобразование элементов API в формат блоков для BlockEditor
+  const apiElementsToBlocks = (elements) => {
+    return (elements || []).map((el) => ({
+      id: el.id,
+      type: el.content_type,
+      data: el.data || {},
+      order: el.order,
+      title: el.title || '',
+      is_published: el.is_published,
+    }));
+  };
+
+  // Преобразование блоков BlockEditor в формат API
+  const blocksToApiElements = (blocks, sectionId) => {
+    return blocks.map((block, index) => ({
+      id: typeof block.id === 'number' ? block.id : null, // null для новых блоков
+      section: sectionId,
+      content_type: block.type,
+      title: block.title || '',
+      data: block.data || {},
+      order: index,
+      is_published: block.is_published !== false,
+    }));
+  };
 
   const loadCourse = useCallback(async () => {
     try {
@@ -52,6 +70,13 @@ const CourseEditor = () => {
         is_published: data.is_published,
       });
       setSections(data.sections || []);
+
+      // Инициализируем блоки для каждой секции
+      const blocksMap = {};
+      (data.sections || []).forEach((section) => {
+        blocksMap[section.id] = apiElementsToBlocks(section.elements);
+      });
+      setSectionBlocks(blocksMap);
     } catch (error) {
       setError('Ошибка загрузки курса');
     } finally {
@@ -137,71 +162,79 @@ const CourseEditor = () => {
     if (!window.confirm('Удалить раздел и все его содержимое?')) return;
     try {
       await coursesAPI.deleteSection(sectionId);
+      // Удаляем блоки секции из состояния
+      setSectionBlocks((prev) => {
+        const updated = { ...prev };
+        delete updated[sectionId];
+        return updated;
+      });
       loadCourse();
     } catch (error) {
       setError('Ошибка удаления раздела');
     }
   };
 
-  // Element handlers
-  const openElementModal = (sectionId, element = null) => {
-    setSelectedSectionId(sectionId);
-    if (element) {
-      setEditingElement(element);
-      setElementForm({
-        content_type: element.content_type,
-        title: element.title || '',
-        text_content: element.text_content || '',
-        link_url: element.link_url || '',
-        link_text: element.link_text || '',
-        homework_description: element.homework_description || '',
-        order: element.order,
-      });
-    } else {
-      setEditingElement(null);
-      const section = sections.find((s) => s.id === sectionId);
-      setElementForm({
-        content_type: 'text',
-        title: '',
-        text_content: '',
-        link_url: '',
-        link_text: '',
-        homework_description: '',
-        order: section?.elements?.length || 0,
-      });
-    }
-    setShowElementModal(true);
+  // BlockEditor handlers
+  const handleBlocksChange = (sectionId, newBlocks) => {
+    setSectionBlocks((prev) => ({
+      ...prev,
+      [sectionId]: newBlocks,
+    }));
   };
 
-  const handleSaveElement = async () => {
+  const handleSaveBlocks = async (sectionId) => {
+    setSavingSectionId(sectionId);
+    setError('');
+
     try {
-      const data = {
-        ...elementForm,
-        order: isNaN(elementForm.order) ? 0 : elementForm.order,
-      };
-      if (editingElement) {
-        await coursesAPI.updateElement(editingElement.id, data);
-      } else {
-        await coursesAPI.createElement({ ...data, section: parseInt(selectedSectionId, 10) });
+      const blocks = sectionBlocks[sectionId] || [];
+      const apiElements = blocksToApiElements(blocks, sectionId);
+
+      // Получаем текущие элементы секции из API
+      const currentElements = sections.find((s) => s.id === sectionId)?.elements || [];
+      const currentIds = currentElements.map((el) => el.id);
+      const newIds = apiElements.filter((el) => el.id).map((el) => el.id);
+
+      // Удаляем элементы, которых больше нет
+      const toDelete = currentIds.filter((id) => !newIds.includes(id));
+      for (const elementId of toDelete) {
+        await coursesAPI.deleteElement(elementId);
       }
+
+      // Создаем или обновляем элементы
+      for (const element of apiElements) {
+        if (element.id) {
+          // Обновляем существующий
+          await coursesAPI.updateElement(element.id, {
+            content_type: element.content_type,
+            title: element.title,
+            data: element.data,
+            order: element.order,
+            is_published: element.is_published,
+          });
+        } else {
+          // Создаем новый
+          await coursesAPI.createElement({
+            section: sectionId,
+            content_type: element.content_type,
+            title: element.title,
+            data: element.data,
+            order: element.order,
+            is_published: element.is_published,
+          });
+        }
+      }
+
+      setSuccess('Содержимое раздела сохранено');
       loadCourse();
-      setShowElementModal(false);
     } catch (error) {
-      console.error('Element save error:', error.response?.data || error);
+      console.error('Save blocks error:', error.response?.data || error);
       const errorMsg = error.response?.data
         ? JSON.stringify(error.response.data)
-        : 'Ошибка сохранения элемента';
+        : 'Ошибка сохранения содержимого';
       setError(errorMsg);
-    }
-  };
-
-  const handleDeleteElement = async (elementId) => {
-    if (!window.confirm('Удалить элемент?')) return;
-    try {
-      await coursesAPI.deleteElement(elementId);
-      loadCourse();
-    } catch (error) {
-      setError('Ошибка удаления элемента');
+    } finally {
+      setSavingSectionId(null);
     }
   };
 
@@ -277,79 +310,59 @@ const CourseEditor = () => {
               </Card.Header>
               <Card.Body>
                 {sections.length > 0 ? (
-                  sections.map((section) => (
-                    <Card key={section.id} className="mb-3">
-                      <Card.Header className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <strong>{section.title}</strong>
-                          {!section.is_published && (
-                            <Badge bg="warning" className="ms-2">Скрыт</Badge>
-                          )}
-                        </div>
-                        <div>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            className="me-2"
-                            onClick={() => openSectionModal(section)}
-                          >
-                            Редактировать
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleDeleteSection(section.id)}
-                          >
-                            Удалить
-                          </Button>
-                        </div>
-                      </Card.Header>
-                      <ListGroup variant="flush">
-                        {section.elements?.map((element) => (
-                          <ListGroup.Item
-                            key={element.id}
-                            className="d-flex justify-content-between align-items-center"
-                          >
+                  <Accordion
+                    activeKey={expandedSection?.toString()}
+                    onSelect={(key) => setExpandedSection(key ? parseInt(key) : null)}
+                  >
+                    {sections.map((section) => (
+                      <Accordion.Item key={section.id} eventKey={section.id.toString()}>
+                        <Accordion.Header>
+                          <div className="d-flex justify-content-between align-items-center w-100 me-3">
                             <div>
-                              <Badge bg="info" className="me-2">
-                                {element.content_type === 'text' && 'Текст'}
-                                {element.content_type === 'image' && 'Изображение'}
-                                {element.content_type === 'link' && 'Ссылка'}
-                                {element.content_type === 'homework' && 'ДЗ'}
+                              <strong>{section.title}</strong>
+                              {!section.is_published && (
+                                <Badge bg="warning" className="ms-2">Скрыт</Badge>
+                              )}
+                              <Badge bg="secondary" className="ms-2">
+                                {section.elements?.length || 0} элементов
                               </Badge>
-                              {element.title || 'Без названия'}
                             </div>
-                            <div>
-                              <Button
-                                variant="link"
-                                size="sm"
-                                onClick={() => openElementModal(section.id, element)}
-                              >
-                                Редактировать
-                              </Button>
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="text-danger"
-                                onClick={() => handleDeleteElement(element.id)}
-                              >
-                                Удалить
-                              </Button>
-                            </div>
-                          </ListGroup.Item>
-                        ))}
-                        <ListGroup.Item>
-                          <Button
-                            variant="outline-success"
-                            size="sm"
-                            onClick={() => openElementModal(section.id)}
-                          >
-                            + Добавить элемент
-                          </Button>
-                        </ListGroup.Item>
-                      </ListGroup>
-                    </Card>
-                  ))
+                          </div>
+                        </Accordion.Header>
+                        <Accordion.Body>
+                          <div className="mb-3 d-flex gap-2">
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openSectionModal(section);
+                              }}
+                            >
+                              Настройки раздела
+                            </Button>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSection(section.id);
+                              }}
+                            >
+                              Удалить раздел
+                            </Button>
+                          </div>
+                          <BlockEditor
+                            blocks={sectionBlocks[section.id] || []}
+                            sectionId={section.id}
+                            onBlocksChange={(blocks) => handleBlocksChange(section.id, blocks)}
+                            onSave={() => handleSaveBlocks(section.id)}
+                            saving={savingSectionId === section.id}
+                          />
+                        </Accordion.Body>
+                      </Accordion.Item>
+                    ))}
+                  </Accordion>
                 ) : (
                   <p className="text-muted text-center">
                     Добавьте разделы для организации контента курса
@@ -427,99 +440,6 @@ const CourseEditor = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Element Modal */}
-      <Modal show={showElementModal} onHide={() => setShowElementModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {editingElement ? 'Редактировать элемент' : 'Добавить элемент'}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <Form.Label>Тип контента</Form.Label>
-            <Form.Select
-              value={elementForm.content_type}
-              onChange={(e) => setElementForm({ ...elementForm, content_type: e.target.value })}
-            >
-              <option value="text">Текст</option>
-              <option value="image">Изображение</option>
-              <option value="link">Ссылка</option>
-              <option value="homework">Домашнее задание</option>
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Заголовок</Form.Label>
-            <Form.Control
-              type="text"
-              value={elementForm.title}
-              onChange={(e) => setElementForm({ ...elementForm, title: e.target.value })}
-            />
-          </Form.Group>
-
-          {elementForm.content_type === 'text' && (
-            <Form.Group className="mb-3">
-              <Form.Label>Текст</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={5}
-                value={elementForm.text_content}
-                onChange={(e) => setElementForm({ ...elementForm, text_content: e.target.value })}
-              />
-            </Form.Group>
-          )}
-
-          {elementForm.content_type === 'link' && (
-            <>
-              <Form.Group className="mb-3">
-                <Form.Label>URL ссылки</Form.Label>
-                <Form.Control
-                  type="url"
-                  value={elementForm.link_url}
-                  onChange={(e) => setElementForm({ ...elementForm, link_url: e.target.value })}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Текст ссылки</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={elementForm.link_text}
-                  onChange={(e) => setElementForm({ ...elementForm, link_text: e.target.value })}
-                />
-              </Form.Group>
-            </>
-          )}
-
-          {elementForm.content_type === 'homework' && (
-            <Form.Group className="mb-3">
-              <Form.Label>Описание задания</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={4}
-                value={elementForm.homework_description}
-                onChange={(e) => setElementForm({ ...elementForm, homework_description: e.target.value })}
-              />
-            </Form.Group>
-          )}
-
-          <Form.Group>
-            <Form.Label>Порядок</Form.Label>
-            <Form.Control
-              type="number"
-              value={elementForm.order}
-              onChange={(e) => setElementForm({ ...elementForm, order: parseInt(e.target.value) })}
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowElementModal(false)}>
-            Отмена
-          </Button>
-          <Button variant="primary" onClick={handleSaveElement}>
-            Сохранить
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 };

@@ -10,6 +10,7 @@ const NewsDetailPage = () => {
 
   useEffect(() => {
     loadNews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadNews = async () => {

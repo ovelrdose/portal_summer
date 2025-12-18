@@ -104,6 +104,7 @@ class ContentElement(models.Model):
     class ContentType(models.TextChoices):
         TEXT = 'text', 'Текст'
         IMAGE = 'image', 'Изображение'
+        VIDEO = 'video', 'Видео'
         LINK = 'link', 'Ссылка'
         HOMEWORK = 'homework', 'Форма для ДЗ'
 
@@ -139,6 +140,9 @@ class ContentElement(models.Model):
 
     # Для ДЗ (тип HOMEWORK) - описание задания
     homework_description = models.TextField('Описание задания', blank=True)
+
+    # JSON данные блока (новый формат)
+    data = models.JSONField('Данные блока', default=dict, blank=True)
 
     order = models.PositiveIntegerField('Порядок', default=0)
     is_published = models.BooleanField('Опубликовано', default=True)

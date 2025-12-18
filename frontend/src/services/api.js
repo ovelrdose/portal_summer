@@ -128,6 +128,19 @@ export const coursesAPI = {
   getHomework: (params) => api.get('/homework/', { params }),
   reviewHomework: (id, comment) =>
     api.post(`/homework/${id}/review/`, { teacher_comment: comment }),
+
+  // Block Editor - Image Upload
+  uploadImage: (file, sectionId) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (sectionId) formData.append('section_id', sectionId);
+    return api.post('/elements/upload_image/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  // Block Editor - Reorder Elements
+  reorderElements: (items) => api.post('/elements/reorder/', { items }),
 };
 
 // Stats API

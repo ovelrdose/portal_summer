@@ -1,9 +1,13 @@
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.db import transaction
+from django.core.files.storage import default_storage
+import os
 
 from .models import Course, Section, ContentElement, HomeworkSubmission, Subscription
 from .serializers import (
@@ -238,7 +242,159 @@ class ContentElementViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
+        if self.action == 'upload_image':
+            return [IsCourseOwnerOrAdmin()]
         return [IsCourseOwnerOrAdmin()]
+
+    @action(
+        detail=False,
+        methods=['post'],
+        parser_classes=[MultiPartParser, FormParser],
+        permission_classes=[IsCourseOwnerOrAdmin]
+    )
+    def upload_image(self, request):
+        """
+        Загружает изображение для использования в блоках контента.
+
+        Валидация:
+        - Допустимые типы: jpeg, jpg, png, gif, webp
+        - Максимальный размер: 5 МБ
+
+        Returns:
+            {"url": "/media/courses/content/image.jpg", "filename": "image.jpg"}
+        """
+        if 'image' not in request.FILES:
+            return Response(
+                {'error': 'Файл изображения не предоставлен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        image_file = request.FILES['image']
+
+        # Валидация типа файла
+        allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        file_extension = image_file.name.split('.')[-1].lower()
+
+        if file_extension not in allowed_extensions:
+            return Response(
+                {
+                    'error': f'Недопустимый тип файла. Разрешены: {", ".join(allowed_extensions)}'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Валидация размера файла (максимум 5 МБ)
+        max_size = 5 * 1024 * 1024  # 5 МБ в байтах
+        if image_file.size > max_size:
+            return Response(
+                {'error': 'Размер файла превышает 5 МБ'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Сохраняем файл
+        file_path = os.path.join('courses/content/', image_file.name)
+        saved_path = default_storage.save(file_path, image_file)
+        file_url = default_storage.url(saved_path)
+
+        # Формируем полный URL для фронтенда
+        if not file_url.startswith('http'):
+            # Получаем базовый URL из request
+            from django.conf import settings
+            base_url = request.build_absolute_uri('/')[:-1]  # удаляем последний /
+            file_url = base_url + file_url
+
+        return Response({
+            'url': file_url,
+            'filename': image_file.name
+        }, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        permission_classes=[IsCourseOwnerOrAdmin]
+    )
+    def reorder(self, request):
+        """
+        Массово обновляет порядок элементов контента.
+
+        Ожидаемый формат:
+        {
+            "items": [
+                {"id": 1, "order": 0},
+                {"id": 2, "order": 1},
+                {"id": 3, "order": 2}
+            ]
+        }
+
+        Returns:
+            {"status": "Порядок элементов обновлен", "updated": 3}
+        """
+        items = request.data.get('items', [])
+
+        if not isinstance(items, list):
+            return Response(
+                {'error': 'Поле "items" должно быть списком'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not items:
+            return Response(
+                {'error': 'Список элементов не может быть пустым'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Проверяем формат данных
+        for item in items:
+            if not isinstance(item, dict) or 'id' not in item or 'order' not in item:
+                return Response(
+                    {'error': 'Каждый элемент должен содержать поля "id" и "order"'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Обновляем порядок в транзакции
+        try:
+            with transaction.atomic():
+                updated_count = 0
+                for item in items:
+                    element_id = item['id']
+                    new_order = item['order']
+
+                    # Проверяем права доступа к элементу
+                    try:
+                        element = ContentElement.objects.select_related(
+                            'section__course'
+                        ).get(pk=element_id)
+
+                        # Проверяем, что пользователь имеет право изменять этот элемент
+                        if not (
+                            request.user.is_admin or
+                            element.section.course.creator == request.user
+                        ):
+                            return Response(
+                                {'error': f'Нет прав для изменения элемента {element_id}'},
+                                status=status.HTTP_403_FORBIDDEN
+                            )
+
+                        element.order = new_order
+                        element.save(update_fields=['order'])
+                        updated_count += 1
+
+                    except ContentElement.DoesNotExist:
+                        return Response(
+                            {'error': f'Элемент с id={element_id} не найден'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+
+                return Response({
+                    'status': 'Порядок элементов обновлен',
+                    'updated': updated_count
+                })
+
+        except Exception as e:
+            return Response(
+                {'error': f'Ошибка при обновлении порядка: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class HomeworkSubmissionViewSet(viewsets.ModelViewSet):

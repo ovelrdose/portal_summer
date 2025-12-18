@@ -1,6 +1,147 @@
 from rest_framework import serializers
+from django.utils import timezone
+import re
 from .models import Course, Section, ContentElement, HomeworkSubmission, Subscription
 from apps.users.serializers import UserPublicSerializer
+
+
+class BlockDataValidator:
+    """Валидатор JSON данных блока в зависимости от типа контента"""
+
+    VIDEO_PATTERNS = {
+        'youtube': re.compile(
+            r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})'
+        ),
+        'vimeo': re.compile(
+            r'vimeo\.com/(?:video/)?(\d+)'
+        ),
+    }
+
+    @classmethod
+    def validate(cls, content_type: str, data: dict) -> dict:
+        """
+        Валидирует данные блока согласно его типу.
+
+        Args:
+            content_type: Тип контента (text, video, image, link, homework)
+            data: Словарь с данными блока
+
+        Returns:
+            Валидированный словарь данных
+
+        Raises:
+            serializers.ValidationError: При невалидных данных
+        """
+        if not isinstance(data, dict):
+            raise serializers.ValidationError("Данные блока должны быть объектом")
+
+        validators = {
+            'text': cls._validate_text,
+            'video': cls._validate_video,
+            'image': cls._validate_image,
+            'link': cls._validate_link,
+            'homework': cls._validate_homework,
+        }
+
+        validator = validators.get(content_type)
+        if not validator:
+            raise serializers.ValidationError(f"Неизвестный тип контента: {content_type}")
+
+        return validator(data)
+
+    @classmethod
+    def _validate_text(cls, data: dict) -> dict:
+        """Валидация текстового блока"""
+        if 'html' not in data:
+            raise serializers.ValidationError("Поле 'html' обязательно для текстового блока")
+
+        # html может быть пустой строкой
+        if not isinstance(data['html'], str):
+            raise serializers.ValidationError("Поле 'html' должно быть строкой")
+
+        return data
+
+    @classmethod
+    def _validate_video(cls, data: dict) -> dict:
+        """Валидация видео блока"""
+        if 'url' not in data:
+            raise serializers.ValidationError("Поле 'url' обязательно для видео блока")
+
+        url = data['url']
+        if not isinstance(url, str) or not url:
+            raise serializers.ValidationError("URL видео должен быть непустой строкой")
+
+        # Определяем провайдер и извлекаем video_id
+        provider = None
+        video_id = None
+
+        for provider_name, pattern in cls.VIDEO_PATTERNS.items():
+            match = pattern.search(url)
+            if match:
+                provider = provider_name
+                video_id = match.group(1)
+                break
+
+        if not provider:
+            raise serializers.ValidationError(
+                "Поддерживаются только видео с YouTube и Vimeo"
+            )
+
+        # Добавляем извлеченные данные
+        data['provider'] = provider
+        data['video_id'] = video_id
+
+        return data
+
+    @classmethod
+    def _validate_image(cls, data: dict) -> dict:
+        """Валидация блока изображения"""
+        if 'url' not in data:
+            raise serializers.ValidationError("Поле 'url' обязательно для блока изображения")
+
+        url = data['url']
+        if not isinstance(url, str) or not url:
+            raise serializers.ValidationError("URL изображения должен быть непустой строкой")
+
+        return data
+
+    @classmethod
+    def _validate_link(cls, data: dict) -> dict:
+        """Валидация блока ссылки"""
+        if 'url' not in data:
+            raise serializers.ValidationError("Поле 'url' обязательно для блока ссылки")
+
+        url = data['url']
+        if not isinstance(url, str) or not url:
+            raise serializers.ValidationError("URL должен быть непустой строкой")
+
+        # Проверяем, что URL начинается с http://, https:// или /
+        if not (url.startswith('http://') or url.startswith('https://') or url.startswith('/')):
+            raise serializers.ValidationError(
+                "URL должен начинаться с http://, https:// или /"
+            )
+
+        return data
+
+    @classmethod
+    def _validate_homework(cls, data: dict) -> dict:
+        """Валидация блока домашнего задания"""
+        # deadline опционален, но если указан - не должен быть в прошлом
+        deadline = data.get('deadline')
+        if deadline:
+            # deadline может быть строкой ISO или datetime объектом
+            if isinstance(deadline, str):
+                try:
+                    from datetime import datetime
+                    deadline_dt = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
+                    if deadline_dt < datetime.now(deadline_dt.tzinfo):
+                        raise serializers.ValidationError(
+                            "Дедлайн не может быть в прошлом"
+                        )
+                except ValueError:
+                    raise serializers.ValidationError("Неверный формат даты для deadline")
+
+        return data
 
 
 class HomeworkSubmissionSerializer(serializers.ModelSerializer):
@@ -16,13 +157,32 @@ class HomeworkSubmissionSerializer(serializers.ModelSerializer):
 
 
 class ContentElementSerializer(serializers.ModelSerializer):
+    """Сериализатор элемента контента с новым форматом данных"""
+
     class Meta:
         model = ContentElement
         fields = [
-            'id', 'section', 'content_type', 'title', 'text_content',
-            'image', 'link_url', 'link_text', 'homework_description',
+            'id', 'section', 'content_type', 'title', 'data',
             'order', 'is_published'
         ]
+
+    def validate(self, attrs):
+        """Валидируем данные блока согласно его типу"""
+        content_type = attrs.get('content_type')
+        data = attrs.get('data', {})
+
+        if content_type and data:
+            # Добавляем version и type если их нет
+            if 'version' not in data:
+                data['version'] = 1
+            if 'type' not in data:
+                data['type'] = content_type
+
+            # Валидируем данные
+            validated_data = BlockDataValidator.validate(content_type, data)
+            attrs['data'] = validated_data
+
+        return attrs
 
 
 class ContentElementDetailSerializer(serializers.ModelSerializer):
@@ -32,8 +192,7 @@ class ContentElementDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentElement
         fields = [
-            'id', 'section', 'content_type', 'title', 'text_content',
-            'image', 'link_url', 'link_text', 'homework_description',
+            'id', 'section', 'content_type', 'title', 'data',
             'order', 'is_published', 'my_submission'
         ]
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Spinner, Badge, Alert, Toast, ToastContainer } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner, Badge, Toast, ToastContainer } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 

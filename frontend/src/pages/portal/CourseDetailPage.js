@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const CourseDetailPage = () => {
   const { id } = useParams();
-  const { user, isTeacher } = useAuth();
+  const { user } = useAuth();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showHomeworkModal, setShowHomeworkModal] = useState(false);
@@ -23,6 +23,7 @@ const CourseDetailPage = () => {
 
   useEffect(() => {
     loadCourse();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadCourse = async () => {
@@ -169,35 +170,72 @@ const CourseDetailPage = () => {
                             <div key={element.id} className="mb-3 pb-3 border-bottom">
                               {element.title && <h5>{element.title}</h5>}
 
+                              {/* Текстовый блок */}
                               {element.content_type === 'text' && (
                                 <div
-                                  dangerouslySetInnerHTML={{ __html: element.text_content }}
+                                  dangerouslySetInnerHTML={{
+                                    __html: element.data?.html || element.text_content || '',
+                                  }}
                                 />
                               )}
 
-                              {element.content_type === 'image' && element.image && (
-                                <img
-                                  src={element.image}
-                                  alt={element.title || 'Изображение'}
-                                  className="img-fluid rounded"
-                                />
+                              {/* Видео блок */}
+                              {element.content_type === 'video' && element.data?.video_id && (
+                                <div className="ratio ratio-16x9">
+                                  <iframe
+                                    src={
+                                      element.data.provider === 'youtube'
+                                        ? `https://www.youtube.com/embed/${element.data.video_id}`
+                                        : `https://player.vimeo.com/video/${element.data.video_id}`
+                                    }
+                                    title={element.data.title || 'Видео'}
+                                    allowFullScreen
+                                  />
+                                </div>
                               )}
 
+                              {/* Изображение */}
+                              {element.content_type === 'image' && (
+                                <figure>
+                                  <img
+                                    src={element.data?.url || element.image}
+                                    alt={element.data?.alt || element.title || 'Изображение'}
+                                    className="img-fluid rounded"
+                                  />
+                                  {element.data?.caption && (
+                                    <figcaption className="text-muted mt-2">
+                                      {element.data.caption}
+                                    </figcaption>
+                                  )}
+                                </figure>
+                              )}
+
+                              {/* Ссылка */}
                               {element.content_type === 'link' && (
                                 <a
-                                  href={element.link_url}
-                                  target="_blank"
+                                  href={element.data?.url || element.link_url}
+                                  target={element.data?.open_in_new_tab !== false ? '_blank' : '_self'}
                                   rel="noopener noreferrer"
+                                  className="btn btn-outline-primary"
                                 >
-                                  {element.link_text || element.link_url}
+                                  {element.data?.text || element.link_text || element.data?.url || element.link_url}
                                 </a>
                               )}
 
+                              {/* Домашнее задание */}
                               {element.content_type === 'homework' && (
                                 <Card className="bg-light">
                                   <Card.Body>
                                     <Card.Title>Домашнее задание</Card.Title>
-                                    <Card.Text>{element.homework_description}</Card.Text>
+                                    <Card.Text>
+                                      {element.data?.description || element.homework_description}
+                                    </Card.Text>
+                                    {element.data?.deadline && (
+                                      <p className="text-muted">
+                                        <strong>Дедлайн:</strong>{' '}
+                                        {new Date(element.data.deadline).toLocaleString('ru-RU')}
+                                      </p>
+                                    )}
                                     {element.my_submission ? (
                                       <Alert
                                         variant={

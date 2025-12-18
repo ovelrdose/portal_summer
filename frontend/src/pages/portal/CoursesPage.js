@@ -19,6 +19,7 @@ const CoursesPage = () => {
     if (isTeacher || isAdmin) {
       loadDrafts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, isTeacher, isAdmin]);
 
   const loadCourses = async () => {
