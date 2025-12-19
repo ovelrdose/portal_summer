@@ -20,11 +20,23 @@ const CourseDetailPage = () => {
   const [error, setError] = useState('');
   const [subscribing, setSubscribing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', variant: 'success' });
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
+  const [homeworkStats, setHomeworkStats] = useState([]);
 
   useEffect(() => {
     loadCourse();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    const isOwner = course?.creator?.id === user?.id;
+    const canEditLocal = isOwner || user?.is_admin;
+
+    if (canEditLocal && id) {
+      loadHomeworkStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course, user, id]);
 
   const loadCourse = async () => {
     try {
@@ -34,6 +46,16 @@ const CourseDetailPage = () => {
       console.error('Error loading course:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadHomeworkStats = async () => {
+    if (!id) return;
+    try {
+      const response = await coursesAPI.getHomeworkStatsByCourse(id);
+      setHomeworkStats(response.data);
+    } catch (error) {
+      console.error('Error loading homework stats:', error);
     }
   };
 
@@ -53,6 +75,7 @@ const CourseDetailPage = () => {
   };
 
   const handleUnsubscribe = async () => {
+    setShowUnsubscribeModal(false);
     setSubscribing(true);
     try {
       await coursesAPI.unsubscribe(id);
@@ -83,16 +106,22 @@ const CourseDetailPage = () => {
     setSubmitting(true);
     try {
       await coursesAPI.submitHomework({
-        element: selectedElement.id,
+        element_id: selectedElement.id,
         file: homeworkFile,
         comment: homeworkComment,
       });
       setShowHomeworkModal(false);
       setHomeworkFile(null);
       setHomeworkComment('');
+      setError('');
       loadCourse();
     } catch (err) {
-      setError('Ошибка при отправке задания');
+      console.error('Submit homework error:', err);
+      const errorMessage = err.response?.data?.element_id?.[0]
+        || err.response?.data?.file?.[0]
+        || err.response?.data?.detail
+        || 'Ошибка при отправке задания';
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -160,9 +189,24 @@ const CourseDetailPage = () => {
               <Accordion defaultActiveKey="0">
                 {course.sections
                   .filter((s) => s.is_published)
-                  .map((section, index) => (
+                  .map((section, index) => {
+                    const stat = homeworkStats.find(s => s.section_id === section.id);
+
+                    return (
                     <Accordion.Item key={section.id} eventKey={String(index)}>
-                      <Accordion.Header>{section.title}</Accordion.Header>
+                      <Accordion.Header>
+                        <div className="d-flex align-items-center">
+                          <span>{section.title}</span>
+                          {canEdit && stat && stat.total_submissions > 0 && (
+                            <Badge
+                              bg={stat.submitted_count > 0 ? 'warning' : 'success'}
+                              className="ms-2"
+                            >
+                              ДЗ: {stat.reviewed_count}/{stat.total_submissions}
+                            </Badge>
+                          )}
+                        </div>
+                      </Accordion.Header>
                       <Accordion.Body>
                         {section.elements
                           ?.filter((e) => e.is_published)
@@ -237,24 +281,58 @@ const CourseDetailPage = () => {
                                       </p>
                                     )}
                                     {element.my_submission ? (
-                                      <Alert
-                                        variant={
-                                          element.my_submission.status === 'reviewed'
-                                            ? 'success'
-                                            : 'info'
-                                        }
-                                      >
-                                        <strong>Статус:</strong>{' '}
-                                        {element.my_submission.status === 'reviewed'
-                                          ? 'Проверено'
-                                          : 'Отправлено'}
-                                        {element.my_submission.teacher_comment && (
-                                          <div className="mt-2">
-                                            <strong>Комментарий преподавателя:</strong>
-                                            <p>{element.my_submission.teacher_comment}</p>
-                                          </div>
-                                        )}
-                                      </Alert>
+                                      element.my_submission.status === 'reviewed' ? (
+                                        <Card
+                                          className="mt-3"
+                                          style={{
+                                            borderLeft: `4px solid ${
+                                              element.my_submission.grade >= 70
+                                                ? '#198754'
+                                                : element.my_submission.grade >= 50
+                                                ? '#ffc107'
+                                                : '#dc3545'
+                                            }`,
+                                          }}
+                                        >
+                                          <Card.Body>
+                                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                              <strong>Статус:</strong>
+                                              <Badge
+                                                bg={
+                                                  element.my_submission.grade >= 70
+                                                    ? 'success'
+                                                    : element.my_submission.grade >= 50
+                                                    ? 'warning'
+                                                    : 'danger'
+                                                }
+                                              >
+                                                Оценка: {element.my_submission.grade}/100
+                                              </Badge>
+                                            </div>
+                                            {element.my_submission.reviewed_at && (
+                                              <p className="text-muted small mb-2">
+                                                Проверено:{' '}
+                                                {new Date(element.my_submission.reviewed_at).toLocaleString('ru-RU')}
+                                              </p>
+                                            )}
+                                            {element.my_submission.teacher_comment && (
+                                              <div className="mt-2">
+                                                <strong>Комментарий преподавателя:</strong>
+                                                <div
+                                                  className="mt-1"
+                                                  dangerouslySetInnerHTML={{
+                                                    __html: element.my_submission.teacher_comment,
+                                                  }}
+                                                />
+                                              </div>
+                                            )}
+                                          </Card.Body>
+                                        </Card>
+                                      ) : (
+                                        <Alert variant="info">
+                                          <strong>Статус:</strong> Отправлено, ожидает проверки
+                                        </Alert>
+                                      )
                                     ) : course.is_subscribed ? (
                                       <Button
                                         variant="primary"
@@ -274,7 +352,8 @@ const CourseDetailPage = () => {
                           ))}
                       </Accordion.Body>
                     </Accordion.Item>
-                  ))}
+                    );
+                  })}
               </Accordion>
             ) : (
               <p className="text-muted">Содержание курса пока не добавлено</p>
@@ -303,7 +382,7 @@ const CourseDetailPage = () => {
                   <Button
                     variant="outline-danger"
                     className="w-100"
-                    onClick={handleUnsubscribe}
+                    onClick={() => setShowUnsubscribeModal(true)}
                     disabled={subscribing}
                   >
                     {subscribing ? (
@@ -336,19 +415,55 @@ const CourseDetailPage = () => {
               )}
 
               {canEdit && (
-                <Button
-                  variant="outline-primary"
-                  className="w-100 mt-3"
-                  as={Link}
-                  to={`/admin/courses/${course.id}/edit`}
-                >
-                  Редактировать курс
-                </Button>
+                <>
+                  <Button
+                    variant="outline-primary"
+                    className="w-100 mt-3"
+                    as={Link}
+                    to={`/admin/courses/${course.id}/edit`}
+                  >
+                    Редактировать курс
+                  </Button>
+                  {(() => {
+                    const totalUnreviewed = homeworkStats.reduce((sum, stat) => sum + stat.submitted_count, 0);
+                    const hasSomeHomework = homeworkStats.some(stat => stat.total_submissions > 0);
+
+                    return hasSomeHomework && (
+                      <Button
+                        variant="outline-success"
+                        className="w-100 mb-2 mt-2"
+                        as={Link}
+                        to={`/admin/courses/${id}/homework`}
+                      >
+                        Проверка ДЗ ({totalUnreviewed} ожидают проверки)
+                      </Button>
+                    );
+                  })()}
+                </>
               )}
             </Card.Body>
           </Card>
         </Col>
       </Row>
+
+      {/* Unsubscribe Confirmation Modal */}
+      <Modal show={showUnsubscribeModal} onHide={() => setShowUnsubscribeModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Подтверждение отписки</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Вы действительно хотите отписаться от курса <strong>"{course?.title}"</strong>?</p>
+          <p className="text-muted mb-0">Вы потеряете доступ ко всем материалам курса.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowUnsubscribeModal(false)}>
+            Отмена
+          </Button>
+          <Button variant="danger" onClick={handleUnsubscribe}>
+            Отписаться
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Homework Modal */}
       <Modal show={showHomeworkModal} onHide={() => setShowHomeworkModal(false)}>

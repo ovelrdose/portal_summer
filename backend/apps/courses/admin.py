@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Section, ContentElement, HomeworkSubmission, Subscription
+from .models import Course, Section, ContentElement, HomeworkSubmission, HomeworkReviewHistory, Subscription
 
 
 class SectionInline(admin.TabularInline):
@@ -43,9 +43,22 @@ class ContentElementAdmin(admin.ModelAdmin):
 
 @admin.register(HomeworkSubmission)
 class HomeworkSubmissionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'element', 'status', 'submitted_at', 'reviewed_at']
-    list_filter = ['status', 'submitted_at']
+    list_display = ['user', 'element', 'status', 'grade', 'submitted_at', 'reviewed_at']
+    list_filter = ['status', 'submitted_at', ('grade', admin.EmptyFieldListFilter)]
     readonly_fields = ['submitted_at']
+    search_fields = ['user__email', 'user__first_name', 'user__last_name']
+
+
+@admin.register(HomeworkReviewHistory)
+class HomeworkReviewHistoryAdmin(admin.ModelAdmin):
+    list_display = ['submission', 'reviewer', 'grade', 'reviewed_at']
+    list_filter = ['reviewed_at', 'reviewer']
+    readonly_fields = ['submission', 'reviewer', 'reviewed_at']
+    search_fields = ['submission__user__email', 'submission__user__first_name', 'submission__user__last_name', 'reviewer__email']
+
+    def has_add_permission(self, request):
+        # Запретить ручное добавление записей истории (они создаются автоматически)
+        return False
 
 
 @admin.register(Subscription)

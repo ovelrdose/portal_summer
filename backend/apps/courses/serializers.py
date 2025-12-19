@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 import re
-from .models import Course, Section, ContentElement, HomeworkSubmission, Subscription
+from .models import Course, Section, ContentElement, HomeworkSubmission, HomeworkReviewHistory, Subscription
 from apps.users.serializers import UserPublicSerializer
 
 
@@ -144,16 +144,79 @@ class BlockDataValidator:
         return data
 
 
+class CourseBriefSerializer(serializers.ModelSerializer):
+    """Краткая информация о курсе для вложенных структур"""
+
+    class Meta:
+        model = Course
+        fields = ['id', 'title']
+        read_only_fields = ['id', 'title']
+
+
+class SectionBriefSerializer(serializers.ModelSerializer):
+    """Краткая информация о разделе с курсом для вложенных структур"""
+    course = CourseBriefSerializer(read_only=True)
+
+    class Meta:
+        model = Section
+        fields = ['id', 'title', 'course']
+        read_only_fields = ['id', 'title', 'course']
+
+
+class ContentElementBriefSerializer(serializers.ModelSerializer):
+    """Краткая информация об элементе контента с разделом и курсом"""
+    section = SectionBriefSerializer(read_only=True)
+
+    class Meta:
+        model = ContentElement
+        fields = ['id', 'title', 'content_type', 'section']
+        read_only_fields = ['id', 'title', 'content_type', 'section']
+
+
 class HomeworkSubmissionSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для домашнего задания с вложенной структурой.
+
+    При чтении возвращает полную информацию об элементе, разделе и курсе.
+    При создании/обновлении принимает только ID элемента.
+    """
     user = UserPublicSerializer(read_only=True)
+    element = ContentElementBriefSerializer(read_only=True)
+    element_id = serializers.PrimaryKeyRelatedField(
+        queryset=ContentElement.objects.all(),
+        source='element',
+        write_only=True
+    )
 
     class Meta:
         model = HomeworkSubmission
         fields = [
-            'id', 'element', 'user', 'file', 'comment',
-            'status', 'teacher_comment', 'submitted_at', 'reviewed_at'
+            'id', 'element', 'element_id', 'user', 'file', 'comment',
+            'status', 'teacher_comment', 'grade', 'submitted_at', 'reviewed_at'
         ]
-        read_only_fields = ['user', 'submitted_at', 'reviewed_at']
+        read_only_fields = ['user', 'submitted_at', 'reviewed_at', 'element']
+
+    def validate_grade(self, value):
+        """Валидация оценки на уровне сериализатора"""
+        if value is not None and (value < 0 or value > 100):
+            raise serializers.ValidationError(
+                "Оценка должна быть в диапазоне от 0 до 100"
+            )
+        return value
+
+
+class HomeworkReviewHistorySerializer(serializers.ModelSerializer):
+    """Сериализатор истории изменений оценок"""
+    reviewer = UserPublicSerializer(read_only=True)
+    submission_id = serializers.IntegerField(source='submission.id', read_only=True)
+
+    class Meta:
+        model = HomeworkReviewHistory
+        fields = [
+            'id', 'submission_id', 'reviewer', 'grade',
+            'teacher_comment', 'reviewed_at'
+        ]
+        read_only_fields = ['id', 'reviewer', 'reviewed_at']
 
 
 class ContentElementSerializer(serializers.ModelSerializer):

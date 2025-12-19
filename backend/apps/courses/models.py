@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django_ckeditor_5.fields import CKEditor5Field
 
 
@@ -210,7 +211,23 @@ class HomeworkSubmission(models.Model):
         default=Status.SUBMITTED
     )
 
-    teacher_comment = models.TextField('Комментарий преподавателя', blank=True)
+    teacher_comment = CKEditor5Field(
+        'Комментарий преподавателя',
+        config_name='default',
+        blank=True
+    )
+
+    grade = models.PositiveSmallIntegerField(
+        'Оценка',
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100)
+        ],
+        help_text='Оценка от 0 до 100 баллов'
+    )
+
     submitted_at = models.DateTimeField('Дата отправки', auto_now_add=True)
     reviewed_at = models.DateTimeField('Дата проверки', null=True, blank=True)
 
@@ -218,6 +235,51 @@ class HomeworkSubmission(models.Model):
         verbose_name = 'Домашнее задание'
         verbose_name_plural = 'Домашние задания'
         ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['element', 'status']),
+        ]
 
     def __str__(self):
         return f'ДЗ от {self.user} - {self.element}'
+
+
+class HomeworkReviewHistory(models.Model):
+    """История изменений оценок домашних заданий"""
+    submission = models.ForeignKey(
+        HomeworkSubmission,
+        on_delete=models.CASCADE,
+        related_name='review_history',
+        verbose_name='Домашнее задание'
+    )
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='homework_reviews',
+        verbose_name='Преподаватель'
+    )
+
+    grade = models.PositiveSmallIntegerField(
+        'Оценка',
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100)
+        ]
+    )
+
+    teacher_comment = CKEditor5Field(
+        'Комментарий',
+        config_name='default',
+        blank=True
+    )
+
+    reviewed_at = models.DateTimeField('Дата проверки', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'История проверки ДЗ'
+        verbose_name_plural = 'История проверок ДЗ'
+        ordering = ['-reviewed_at']
+
+    def __str__(self):
+        return f'Проверка {self.submission} от {self.reviewer} ({self.reviewed_at})'

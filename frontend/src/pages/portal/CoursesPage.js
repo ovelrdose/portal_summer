@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Spinner, Form, Badge, Tabs, Tab, Toast, ToastContainer } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner, Form, Badge, Tabs, Tab, Toast, ToastContainer, Modal } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -13,6 +13,8 @@ const CoursesPage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [subscribingId, setSubscribingId] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', variant: 'success' });
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
+  const [courseToUnsubscribe, setCourseToUnsubscribe] = useState(null);
 
   useEffect(() => {
     loadCourses();
@@ -60,7 +62,14 @@ const CoursesPage = () => {
     }
   };
 
-  const handleUnsubscribe = async (courseId) => {
+  const openUnsubscribeModal = (course) => {
+    setCourseToUnsubscribe(course);
+    setShowUnsubscribeModal(true);
+  };
+
+  const handleUnsubscribe = async () => {
+    const courseId = courseToUnsubscribe.id;
+    setShowUnsubscribeModal(false);
     setSubscribingId(courseId);
     try {
       await coursesAPI.unsubscribe(courseId);
@@ -72,6 +81,7 @@ const CoursesPage = () => {
       setToast({ show: true, message: errorMessage, variant: 'danger' });
     } finally {
       setSubscribingId(null);
+      setCourseToUnsubscribe(null);
     }
   };
 
@@ -121,7 +131,7 @@ const CoursesPage = () => {
                             {course.is_subscribed ? (
                               <Button
                                 variant="outline-danger"
-                                onClick={() => handleUnsubscribe(course.id)}
+                                onClick={() => openUnsubscribeModal(course)}
                                 disabled={subscribingId === course.id}
                               >
                                 {subscribingId === course.id ? (
@@ -210,7 +220,7 @@ const CoursesPage = () => {
                         {course.is_subscribed ? (
                           <Button
                             variant="outline-danger"
-                            onClick={() => handleUnsubscribe(course.id)}
+                            onClick={() => openUnsubscribeModal(course)}
                             disabled={subscribingId === course.id}
                           >
                             {subscribingId === course.id ? (
@@ -251,6 +261,25 @@ const CoursesPage = () => {
           )}
         </>
       )}
+
+      {/* Unsubscribe Confirmation Modal */}
+      <Modal show={showUnsubscribeModal} onHide={() => setShowUnsubscribeModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Подтверждение отписки</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Вы действительно хотите отписаться от курса <strong>"{courseToUnsubscribe?.title}"</strong>?</p>
+          <p className="text-muted mb-0">Вы потеряете доступ ко всем материалам курса.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowUnsubscribeModal(false)}>
+            Отмена
+          </Button>
+          <Button variant="danger" onClick={handleUnsubscribe}>
+            Отписаться
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Toast notifications */}
       <ToastContainer position="top-end" className="p-3">

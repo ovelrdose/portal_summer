@@ -75,4 +75,5 @@ Course actions: `/api/courses/{id}/subscribe/`, `/api/courses/{id}/unsubscribe/`
 ### Environment Variables
 Backend: Copy `backend/.env.example` to `backend/.env`
 Frontend: Set `REACT_APP_API_URL` (defaults to `http://localhost:8000/api`)
+Не запускай файлы бекенда и фронтеда. Я буду делать это сам. Чтобы убедиться в работе приложения используй npm build
 

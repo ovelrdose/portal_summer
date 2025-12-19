@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Container, Row, Col, Card, Form, Button, Spinner, Alert,
   Modal, Badge, Accordion
@@ -36,11 +36,16 @@ const CourseEditor = () => {
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
   const [sectionForm, setSectionForm] = useState({ title: '', order: 0 });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // BlockEditor states
   const [sectionBlocks, setSectionBlocks] = useState({}); // { sectionId: blocks[] }
   const [savingSectionId, setSavingSectionId] = useState(null);
   const [expandedSection, setExpandedSection] = useState(null);
+
+  // Homework stats
+  const [homeworkStats, setHomeworkStats] = useState([]);
 
   // Преобразование элементов API в формат блоков для BlockEditor
   const apiElementsToBlocks = (elements) => {
@@ -94,11 +99,22 @@ const CourseEditor = () => {
     }
   }, [id]);
 
+  const loadHomeworkStats = useCallback(async () => {
+    if (!id) return;
+    try {
+      const response = await coursesAPI.getHomeworkStatsByCourse(id);
+      setHomeworkStats(response.data);
+    } catch (error) {
+      console.error('Error loading homework stats:', error);
+    }
+  }, [id]);
+
   useEffect(() => {
     if (isEdit) {
       loadCourse();
+      loadHomeworkStats();
     }
-  }, [isEdit, loadCourse]);
+  }, [isEdit, loadCourse, loadHomeworkStats]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -170,6 +186,13 @@ const CourseEditor = () => {
       if (isEdit) {
         await coursesAPI.updateCourse(id, formData);
         setSuccess('Курс сохранен');
+        // Сбрасываем локальные состояния файлов после успешного сохранения
+        setImageFile(null);
+        setImagePreview(null);
+        setRemoveImage(false);
+        setThumbnailFile(null);
+        setThumbnailPreview(null);
+        setRemoveThumbnail(false);
         loadCourse(); // Перезагружаем для обновления изображения
       } else {
         const response = await coursesAPI.createCourse(formData);
@@ -193,6 +216,22 @@ const CourseEditor = () => {
       setCourse({ ...course, is_published: !course.is_published });
     } catch (error) {
       setError('Ошибка публикации');
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    setDeleting(true);
+    setError('');
+
+    try {
+      await coursesAPI.deleteCourse(id);
+      navigate('/admin/courses');
+    } catch (error) {
+      console.error('Delete error:', error.response?.data || error);
+      setError('Ошибка удаления курса');
+      setShowDeleteModal(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -457,6 +496,18 @@ const CourseEditor = () => {
                               <Badge bg="secondary" className="ms-2">
                                 {section.elements?.length || 0} элементов
                               </Badge>
+                              {(() => {
+                                const stat = homeworkStats.find(s => s.section_id === section.id);
+                                if (stat && stat.total_submissions > 0) {
+                                  const hasUnreviewed = stat.submitted_count > 0;
+                                  return (
+                                    <Badge bg={hasUnreviewed ? 'warning' : 'success'} className="ms-2">
+                                      ДЗ: {stat.reviewed_count}/{stat.total_submissions}
+                                    </Badge>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           </div>
                         </Accordion.Header>
@@ -482,6 +533,23 @@ const CourseEditor = () => {
                             >
                               Удалить раздел
                             </Button>
+                            {(() => {
+                              const stat = homeworkStats.find(s => s.section_id === section.id);
+                              if (stat && stat.total_submissions > 0) {
+                                return (
+                                  <Button
+                                    as={Link}
+                                    to={`/admin/courses/${id}/homework`}
+                                    variant="outline-success"
+                                    size="sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Проверка ДЗ
+                                  </Button>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                           <BlockEditor
                             blocks={sectionBlocks[section.id] || []}
@@ -526,11 +594,20 @@ const CourseEditor = () => {
               )}
               <Button
                 variant="outline-secondary"
-                className="w-100"
+                className="w-100 mb-2"
                 onClick={() => navigate(isEdit ? `/portal/courses/${id}` : '/portal/courses')}
               >
                 {isEdit ? 'Закончить редактирование' : 'Вернуться к курсам'}
               </Button>
+              {isEdit && (
+                <Button
+                  variant="danger"
+                  className="w-100"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  Удалить курс
+                </Button>
+              )}
             </Card.Body>
           </Card>
         </Col>
@@ -567,6 +644,27 @@ const CourseEditor = () => {
           </Button>
           <Button variant="primary" onClick={handleSaveSection}>
             Сохранить
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete Course Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Подтверждение удаления</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Вы уверены, что хотите удалить курс <strong>"{course.title}"</strong>?</p>
+          <p className="text-danger">
+            Это действие необратимо. Будут удалены все разделы, материалы и подписки на курс.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+            Отмена
+          </Button>
+          <Button variant="danger" onClick={handleDeleteCourse} disabled={deleting}>
+            {deleting ? 'Удаление...' : 'Удалить курс'}
           </Button>
         </Modal.Footer>
       </Modal>

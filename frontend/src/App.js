@@ -27,6 +27,7 @@ import ProfilePage from './pages/portal/ProfilePage';
 // Admin/Teacher pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import CourseEditor from './pages/admin/CourseEditor';
+import HomeworkReviewPage from './pages/admin/HomeworkReviewPage';
 
 // Protected Route component
 const ProtectedRoute = ({ children, requireAdmin = false, requireTeacher = false }) => {
@@ -138,6 +139,14 @@ function App() {
             element={
               <ProtectedRoute requireTeacher>
                 <CourseEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/courses/:id/homework"
+            element={
+              <ProtectedRoute requireTeacher>
+                <HomeworkReviewPage />
               </ProtectedRoute>
             }
           />

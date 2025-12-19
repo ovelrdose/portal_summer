@@ -132,8 +132,16 @@ export const coursesAPI = {
     });
   },
   getHomework: (params) => api.get('/homework/', { params }),
-  reviewHomework: (id, comment) =>
-    api.post(`/homework/${id}/review/`, { teacher_comment: comment }),
+  getHomeworkSubmission: (id) => api.get(`/homework/${id}/`),
+  reviewHomework: (id, data) =>
+    api.post(`/homework/${id}/review/`, {
+      teacher_comment: data.comment,
+      grade: data.grade,
+    }),
+  getHomeworkStatsByCourse: (courseId) =>
+    api.get(`/homework/section-stats/?course_id=${courseId}`),
+  getHomeworkReviewHistory: (submissionId) =>
+    api.get(`/homework/${submissionId}/review_history/`),
 
   // Block Editor - Image Upload
   uploadImage: (file, sectionId) => {

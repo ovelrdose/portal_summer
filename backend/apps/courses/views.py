@@ -6,10 +6,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Avg, Count, Q
 from django.core.files.storage import default_storage
 import os
 
-from .models import Course, Section, ContentElement, HomeworkSubmission, Subscription
+from .models import (
+    Course,
+    Section,
+    ContentElement,
+    HomeworkSubmission,
+    HomeworkReviewHistory,
+    Subscription
+)
 from .serializers import (
     CourseListSerializer,
     CourseDetailSerializer,
@@ -19,6 +27,7 @@ from .serializers import (
     ContentElementSerializer,
     ContentElementDetailSerializer,
     HomeworkSubmissionSerializer,
+    HomeworkReviewHistorySerializer,
     SubscriptionSerializer
 )
 from apps.users.permissions import IsAdmin, IsTeacher, IsOwnerOrAdmin
@@ -68,6 +77,31 @@ class IsCourseOwnerOrAdmin(permissions.BasePermission):
             return obj.section.course.creator == request.user
         # Для Course
         return obj.creator == request.user
+
+
+class IsCourseOwnerForHomework(permissions.BasePermission):
+    """Проверяет, что пользователь является владельцем курса для домашнего задания"""
+
+    def has_object_permission(self, request, view, obj):
+        """
+        Проверяет права доступа к объекту HomeworkSubmission.
+
+        Args:
+            request: HTTP запрос
+            view: ViewSet
+            obj: Объект HomeworkSubmission
+
+        Returns:
+            True если пользователь - админ или владелец курса
+        """
+        # Админы имеют полный доступ
+        if request.user.is_admin:
+            return True
+
+        # Проверяем, что пользователь является владельцем курса
+        # obj - это HomeworkSubmission
+        # element.section.course.creator
+        return obj.element.section.course.creator == request.user
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -405,14 +439,55 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
     serializer_class = HomeworkSubmissionSerializer
 
     def get_queryset(self):
+        """
+        Возвращает queryset с оптимизацией через select_related.
+
+        Оптимизация включает:
+        - element (ForeignKey)
+        - element__section (ForeignKey)
+        - element__section__course (ForeignKey)
+        - user (ForeignKey)
+
+        Это предотвращает N+1 запросы при сериализации вложенной структуры.
+
+        Query параметры:
+        - course: ID курса для фильтрации
+        - section: ID раздела для фильтрации
+        - status: Статус (submitted/reviewed)
+        """
         user = self.request.user
-        # Преподаватель видит все ДЗ своих курсов
+
+        # Базовый queryset с оптимизацией
+        queryset = HomeworkSubmission.objects.select_related(
+            'element',
+            'element__section',
+            'element__section__course',
+            'user'
+        )
+
+        # Преподаватель видит все ДЗ своих курсов + свои собственные
         if user.is_teacher:
-            return HomeworkSubmission.objects.filter(
-                element__section__course__creator=user
-            ) | HomeworkSubmission.objects.filter(user=user)
-        # Обычный пользователь видит только свои
-        return HomeworkSubmission.objects.filter(user=user)
+            queryset = queryset.filter(
+                Q(element__section__course__creator=user) | Q(user=user)
+            )
+        else:
+            # Обычный пользователь видит только свои
+            queryset = queryset.filter(user=user)
+
+        # Фильтрация по query параметрам
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            queryset = queryset.filter(element__section__course_id=course_id)
+
+        section_id = self.request.query_params.get('section')
+        if section_id:
+            queryset = queryset.filter(element__section_id=section_id)
+
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+
+        return queryset
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'create']:
@@ -422,15 +497,166 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsTeacher])
+    @action(detail=True, methods=['post'], permission_classes=[IsTeacher, IsCourseOwnerForHomework])
     def review(self, request, pk=None):
-        """Оставить отзыв на ДЗ"""
+        """
+        Проверить домашнее задание и оставить оценку с комментарием.
+
+        Request body:
+            grade (int, optional): Оценка от 0 до 100
+            teacher_comment (str, optional): Комментарий преподавателя
+
+        Returns:
+            Обновленный объект HomeworkSubmission через сериализатор
+        """
         submission = self.get_object()
+
+        # Получаем данные из запроса
+        grade = request.data.get('grade')
         teacher_comment = request.data.get('teacher_comment', '')
 
-        submission.status = HomeworkSubmission.Status.REVIEWED
-        submission.teacher_comment = teacher_comment
-        submission.reviewed_at = timezone.now()
-        submission.save()
+        # Валидация оценки
+        if grade is not None:
+            try:
+                grade = int(grade)
+                if grade < 0 or grade > 100:
+                    return Response(
+                        {'error': 'Оценка должна быть в диапазоне от 0 до 100'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Оценка должна быть числом'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        return Response({'status': 'Отзыв сохранен'})
+        # Сохраняем запись в историю ПЕРЕД обновлением submission
+        with transaction.atomic():
+            HomeworkReviewHistory.objects.create(
+                submission=submission,
+                reviewer=request.user,
+                grade=grade,
+                teacher_comment=teacher_comment
+            )
+
+            # Обновляем submission
+            submission.status = HomeworkSubmission.Status.REVIEWED
+            submission.grade = grade
+            submission.teacher_comment = teacher_comment
+            submission.reviewed_at = timezone.now()
+            submission.save(update_fields=['status', 'grade', 'teacher_comment', 'reviewed_at'])
+
+        # Возвращаем обновленный объект через сериализатор
+        serializer = self.get_serializer(submission)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='section-stats', permission_classes=[IsTeacher])
+    def section_stats(self, request):
+        """
+        Статистика домашних заданий по разделам курса.
+
+        Query params:
+            course_id (required): ID курса для получения статистики
+
+        Response:
+            [{
+                "section_id": int,
+                "section_title": str,
+                "total_submissions": int,
+                "submitted_count": int,
+                "reviewed_count": int,
+                "avg_grade": float | null
+            }]
+        """
+        course_id = request.query_params.get('course_id')
+
+        if not course_id:
+            return Response(
+                {'error': 'Параметр course_id обязателен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Проверяем существование курса и права доступа
+        try:
+            course = Course.objects.get(pk=course_id)
+        except Course.DoesNotExist:
+            return Response(
+                {'error': 'Курс не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Проверяем, что пользователь - владелец курса или админ
+        if not (request.user.is_admin or course.creator == request.user):
+            return Response(
+                {'error': 'Нет доступа к статистике этого курса'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Получаем все разделы курса
+        sections = Section.objects.filter(course=course).order_by('order')
+
+        stats = []
+        for section in sections:
+            # Получаем все элементы типа HOMEWORK в этом разделе
+            homework_elements = ContentElement.objects.filter(
+                section=section,
+                content_type=ContentElement.ContentType.HOMEWORK
+            )
+
+            # Получаем все submissions для ДЗ в этом разделе
+            submissions = HomeworkSubmission.objects.filter(
+                element__in=homework_elements
+            )
+
+            # Подсчитываем статистику
+            total_submissions = submissions.count()
+            submitted_count = submissions.filter(
+                status=HomeworkSubmission.Status.SUBMITTED
+            ).count()
+            reviewed_count = submissions.filter(
+                status=HomeworkSubmission.Status.REVIEWED
+            ).count()
+
+            # Вычисляем среднюю оценку (только для проверенных работ с оценкой)
+            avg_grade_result = submissions.filter(
+                status=HomeworkSubmission.Status.REVIEWED,
+                grade__isnull=False
+            ).aggregate(avg_grade=Avg('grade'))
+
+            avg_grade = avg_grade_result['avg_grade']
+            # Округляем до 2 знаков после запятой, если есть значение
+            if avg_grade is not None:
+                avg_grade = round(avg_grade, 2)
+
+            stats.append({
+                'section_id': section.id,
+                'section_title': section.title,
+                'total_submissions': total_submissions,
+                'submitted_count': submitted_count,
+                'reviewed_count': reviewed_count,
+                'avg_grade': avg_grade
+            })
+
+        return Response(stats)
+
+    @action(detail=True, methods=['get'])
+    def review_history(self, request, pk=None):
+        """
+        Получить историю изменений оценки для конкретного домашнего задания.
+
+        Returns:
+            Список записей истории проверок через HomeworkReviewHistorySerializer
+        """
+        submission = self.get_object()
+
+        # Получаем историю проверок для этого submission
+        history = HomeworkReviewHistory.objects.filter(
+            submission=submission
+        ).select_related('reviewer').order_by('-reviewed_at')
+
+        serializer = HomeworkReviewHistorySerializer(
+            history,
+            many=True,
+            context={'request': request}
+        )
+        return Response(serializer.data)
