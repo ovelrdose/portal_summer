@@ -13,7 +13,7 @@ const Navbar = () => {
   };
 
   return (
-    <BsNavbar bg="dark" variant="dark" expand="lg" sticky="top">
+    <BsNavbar bg="dark" variant="dark" expand="lg" sticky="top" style={{ zIndex: 1050 }}>
       <Container>
         <BsNavbar.Brand as={Link} to="/">
           Портал курсов

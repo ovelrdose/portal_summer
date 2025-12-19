@@ -152,11 +152,11 @@ const HomeworkReviewPage = () => {
         <div>
           <Button
             as={Link}
-            to={`/admin/courses/${id}/edit`}
+            to={`/portal/courses/${id}`}
             variant="outline-secondary"
             className="mb-2"
           >
-            Назад к редактору курса
+            Назад к курсу
           </Button>
           <h2>{course.title} - Проверка домашних заданий</h2>
         </div>

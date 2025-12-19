@@ -186,14 +186,14 @@ const CourseDetailPage = () => {
           <h3 className="mb-3">Содержание курса</h3>
           {course.is_subscribed || canEdit ? (
             course.sections?.length > 0 ? (
-              <Accordion defaultActiveKey="0">
+              <Accordion defaultActiveKey="0" style={{ position: 'relative', zIndex: 1 }}>
                 {course.sections
                   .filter((s) => s.is_published)
                   .map((section, index) => {
                     const stat = homeworkStats.find(s => s.section_id === section.id);
 
                     return (
-                    <Accordion.Item key={section.id} eventKey={String(index)}>
+                    <Accordion.Item key={section.id} eventKey={String(index)} className="mb-3">
                       <Accordion.Header>
                         <div className="d-flex align-items-center">
                           <span>{section.title}</span>
