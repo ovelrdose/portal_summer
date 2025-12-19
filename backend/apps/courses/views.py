@@ -156,7 +156,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         if not request.user.is_authenticated:
             return Response([])
         subscriptions = Subscription.objects.filter(user=request.user)
-        serializer = SubscriptionSerializer(subscriptions, many=True)
+        serializer = SubscriptionSerializer(
+            subscriptions,
+            many=True,
+            context={'request': request}
+        )
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])

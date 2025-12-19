@@ -93,8 +93,14 @@ export const coursesAPI = {
   getMyCourses: () => api.get('/courses/my_courses/'),
   getCreatedCourses: () => api.get('/courses/created_courses/'),
   getDrafts: () => api.get('/courses/drafts/'),
-  createCourse: (data) => api.post('/courses/', data),
-  updateCourse: (id, data) => api.patch(`/courses/${id}/`, data),
+  createCourse: (data) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.post('/courses/', data, config);
+  },
+  updateCourse: (id, data) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.patch(`/courses/${id}/`, data, config);
+  },
   deleteCourse: (id) => api.delete(`/courses/${id}/`),
   subscribe: (id) => api.post(`/courses/${id}/subscribe/`),
   unsubscribe: (id) => api.post(`/courses/${id}/unsubscribe/`),

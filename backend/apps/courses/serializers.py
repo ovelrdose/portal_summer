@@ -228,7 +228,8 @@ class SectionListSerializer(serializers.ModelSerializer):
 class CourseListSerializer(serializers.ModelSerializer):
     """Сериализатор для карточек курсов"""
     creator = UserPublicSerializer(read_only=True)
-    image_url = serializers.ReadOnlyField()
+    image_url = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
     subscribers_count = serializers.ReadOnlyField()
     is_subscribed = serializers.SerializerMethodField()
 
@@ -236,8 +237,40 @@ class CourseListSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'short_description', 'image', 'image_url',
+            'thumbnail', 'thumbnail_url',
             'creator', 'subscribers_count', 'is_subscribed', 'is_published', 'created_at'
         ]
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        # Возвращаем абсолютный URL для дефолтного изображения
+        from django.conf import settings
+        default_url = f'{settings.STATIC_URL}images/default-course.jpg'
+        if request:
+            return request.build_absolute_uri(default_url)
+        return default_url
+
+    def get_thumbnail_url(self, obj):
+        request = self.context.get('request')
+        # Приоритет: thumbnail → image → default
+        if obj.thumbnail:
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            return obj.thumbnail.url
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        # Дефолтное изображение
+        from django.conf import settings
+        default_url = f'{settings.STATIC_URL}images/default-course.jpg'
+        if request:
+            return request.build_absolute_uri(default_url)
+        return default_url
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -250,7 +283,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     """Детальный просмотр курса"""
     creator = UserPublicSerializer(read_only=True)
     sections = SectionSerializer(many=True, read_only=True)
-    image_url = serializers.ReadOnlyField()
+    image_url = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
     subscribers_count = serializers.ReadOnlyField()
     is_subscribed = serializers.SerializerMethodField()
 
@@ -258,9 +292,41 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'short_description', 'description', 'image', 'image_url',
+            'thumbnail', 'thumbnail_url',
             'creator', 'sections', 'subscribers_count', 'is_subscribed',
             'is_published', 'created_at', 'updated_at'
         ]
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        # Возвращаем абсолютный URL для дефолтного изображения
+        from django.conf import settings
+        default_url = f'{settings.STATIC_URL}images/default-course.jpg'
+        if request:
+            return request.build_absolute_uri(default_url)
+        return default_url
+
+    def get_thumbnail_url(self, obj):
+        request = self.context.get('request')
+        # Приоритет: thumbnail → image → default
+        if obj.thumbnail:
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            return obj.thumbnail.url
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        # Дефолтное изображение
+        from django.conf import settings
+        default_url = f'{settings.STATIC_URL}images/default-course.jpg'
+        if request:
+            return request.build_absolute_uri(default_url)
+        return default_url
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -276,13 +342,19 @@ class CourseAdminSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'short_description', 'description',
-            'image', 'is_published'
+            'image', 'thumbnail', 'is_published'
         ]
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
-    course = CourseListSerializer(read_only=True)
+    course = serializers.SerializerMethodField()
 
     class Meta:
         model = Subscription
         fields = ['id', 'course', 'subscribed_at']
+
+    def get_course(self, obj):
+        return CourseListSerializer(
+            obj.course,
+            context=self.context
+        ).data

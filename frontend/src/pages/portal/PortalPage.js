@@ -70,7 +70,7 @@ const PortalPage = () => {
                 <Card className="h-100 course-card">
                   <Card.Img
                     variant="top"
-                    src={course.image_url}
+                    src={course.thumbnail_url || course.image_url}
                     alt={course.title}
                   />
                   <Card.Body>
@@ -117,7 +117,7 @@ const PortalPage = () => {
               <Card className="h-100 course-card">
                 <Card.Img
                   variant="top"
-                  src={course.image_url}
+                  src={course.thumbnail_url || course.image_url}
                   alt={course.title}
                 />
                 <Card.Body>

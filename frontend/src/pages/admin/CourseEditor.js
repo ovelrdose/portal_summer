@@ -17,7 +17,15 @@ const CourseEditor = () => {
     short_description: '',
     description: '',
     is_published: false,
+    image_url: null,
+    thumbnail_url: null,
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -68,6 +76,8 @@ const CourseEditor = () => {
         short_description: data.short_description,
         description: data.description || '',
         is_published: data.is_published,
+        image_url: data.image_url,
+        thumbnail_url: data.thumbnail_url,
       });
       setSections(data.sections || []);
 
@@ -90,6 +100,45 @@ const CourseEditor = () => {
     }
   }, [isEdit, loadCourse]);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setRemoveImage(false);
+      // Создаем превью
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(true);
+  };
+
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setThumbnailFile(file);
+      setRemoveThumbnail(false);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setThumbnailPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveThumbnail = () => {
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
+    setRemoveThumbnail(true);
+  };
+
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -97,14 +146,37 @@ const CourseEditor = () => {
     setSuccess('');
 
     try {
+      const formData = new FormData();
+      formData.append('title', course.title);
+      formData.append('short_description', course.short_description);
+      formData.append('description', course.description || '');
+      formData.append('is_published', course.is_published);
+
+      // Добавляем изображение если выбрано новое
+      if (imageFile) {
+        formData.append('image', imageFile);
+      } else if (removeImage) {
+        // Если нужно удалить изображение, отправляем пустое значение
+        formData.append('image', '');
+      }
+
+      // Добавляем thumbnail
+      if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+      } else if (removeThumbnail) {
+        formData.append('thumbnail', '');
+      }
+
       if (isEdit) {
-        await coursesAPI.updateCourse(id, course);
+        await coursesAPI.updateCourse(id, formData);
         setSuccess('Курс сохранен');
+        loadCourse(); // Перезагружаем для обновления изображения
       } else {
-        const response = await coursesAPI.createCourse(course);
+        const response = await coursesAPI.createCourse(formData);
         navigate(`/admin/courses/${response.data.id}/edit`);
       }
     } catch (err) {
+      console.error('Save error:', err.response?.data || err);
       setError('Ошибка сохранения курса');
     } finally {
       setSaving(false);
@@ -289,6 +361,65 @@ const CourseEditor = () => {
                     rows={5}
                     value={course.description}
                     onChange={(e) => setCourse({ ...course, description: e.target.value })}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Изображение обложки (необязательно)</Form.Label>
+                  <Form.Text className="text-muted d-block mb-2">
+                    Используется на странице курса. Рекомендуемый размер: 1200x400 px (3:1).
+                  </Form.Text>
+                  {(imagePreview || (course.image_url && !removeImage)) && (
+                    <div className="mb-2">
+                      <img
+                        src={imagePreview || course.image_url}
+                        alt="Обложка курса"
+                        style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'cover' }}
+                        className="img-thumbnail d-block mb-2"
+                      />
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={handleRemoveImage}
+                      >
+                        Удалить обложку
+                      </Button>
+                    </div>
+                  )}
+                  <Form.Control
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Миниатюра для карточек (необязательно)</Form.Label>
+                  <Form.Text className="text-muted d-block mb-2">
+                    Используется в списках курсов. Рекомендуемый размер: 800x200 px (4:1).
+                    Если не указана, будет использоваться обложка.
+                  </Form.Text>
+                  {(thumbnailPreview || (course.thumbnail_url && !removeThumbnail)) && (
+                    <div className="mb-2">
+                      <img
+                        src={thumbnailPreview || course.thumbnail_url}
+                        alt="Миниатюра курса"
+                        style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'cover' }}
+                        className="img-thumbnail d-block mb-2"
+                      />
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={handleRemoveThumbnail}
+                      >
+                        Удалить миниатюру
+                      </Button>
+                    </div>
+                  )}
+                  <Form.Control
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailChange}
                   />
                 </Form.Group>
 

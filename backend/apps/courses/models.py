@@ -9,10 +9,19 @@ class Course(models.Model):
     description = CKEditor5Field('Полное описание', config_name='default', blank=True)
 
     image = models.ImageField(
-        'Изображение',
+        'Изображение обложки',
         upload_to='courses/images/',
         blank=True,
-        null=True
+        null=True,
+        help_text='Рекомендуемый размер: 1200x400 px (3:1). Используется на странице курса'
+    )
+
+    thumbnail = models.ImageField(
+        'Миниатюра (превью)',
+        upload_to='courses/thumbnails/',
+        blank=True,
+        null=True,
+        help_text='Рекомендуемый размер: 800x200 px (4:1). Используется в карточках курсов'
     )
 
     creator = models.ForeignKey(
@@ -43,9 +52,24 @@ class Course(models.Model):
 
     @property
     def image_url(self):
+        """Возвращает URL изображения курса или изображения по умолчанию"""
         if self.image:
             return self.image.url
-        return '/static/images/default-course.jpg'
+        # Используем settings.STATIC_URL для правильного URL
+        from django.conf import settings
+        return f'{settings.STATIC_URL}images/default-course.jpg'
+
+    @property
+    def thumbnail_url(self):
+        """Возвращает URL миниатюры или fallback на image или default"""
+        if self.thumbnail:
+            return self.thumbnail.url
+        # Fallback: если нет thumbnail, используем image
+        if self.image:
+            return self.image.url
+        # Финальный fallback: дефолтное изображение
+        from django.conf import settings
+        return f'{settings.STATIC_URL}images/default-course.jpg'
 
     @property
     def subscribers_count(self):

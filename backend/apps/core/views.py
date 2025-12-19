@@ -22,7 +22,7 @@ def users_by_grade(request):
 @permission_classes([IsAdmin])
 def popular_courses(request):
     """Статистика по популярным курсам"""
-    courses = Course.objects.filter(is_published=True).annotate(
+    courses = Course.objects.annotate(
         subs_count=Count('subscriptions')
     ).order_by('-subs_count', '-created_at')[:10]
 

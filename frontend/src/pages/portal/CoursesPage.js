@@ -105,7 +105,7 @@ const CoursesPage = () => {
                     courses.map((course) => (
                       <Col md={4} key={course.id} className="mb-4">
                         <Card className="h-100 course-card">
-                          <Card.Img variant="top" src={course.image_url} alt={course.title} />
+                          <Card.Img variant="top" src={course.thumbnail_url || course.image_url} alt={course.title} />
                           <Card.Body>
                             <Card.Title>{course.title}</Card.Title>
                             <Card.Text>{course.short_description}</Card.Text>
@@ -165,7 +165,7 @@ const CoursesPage = () => {
                   {drafts.map((course) => (
                     <Col md={4} key={course.id} className="mb-4">
                       <Card className="h-100 course-card">
-                        <Card.Img variant="top" src={course.image_url} alt={course.title} />
+                        <Card.Img variant="top" src={course.thumbnail_url || course.image_url} alt={course.title} />
                         <Card.Body>
                           <Card.Title>
                             {course.title}
@@ -194,7 +194,7 @@ const CoursesPage = () => {
                 courses.map((course) => (
                   <Col md={4} key={course.id} className="mb-4">
                     <Card className="h-100 course-card">
-                      <Card.Img variant="top" src={course.image_url} alt={course.title} />
+                      <Card.Img variant="top" src={course.thumbnail_url || course.image_url} alt={course.title} />
                       <Card.Body>
                         <Card.Title>{course.title}</Card.Title>
                         <Card.Text>{course.short_description}</Card.Text>
