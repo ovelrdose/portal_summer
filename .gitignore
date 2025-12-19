@@ -58,6 +58,9 @@ docs/bug_log
 *.temp
 *.bak
 *~
+nul
+test_response.json
+**/test_response.json
 
 # Coverage
 .coverage
