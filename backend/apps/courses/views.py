@@ -75,8 +75,13 @@ class IsCourseOwnerOrAdmin(permissions.BasePermission):
             return obj.course.creator == request.user
         if hasattr(obj, 'section'):
             return obj.section.course.creator == request.user
+        # Для HomeworkSubmission - проверяем владельца курса через element
+        if hasattr(obj, 'element'):
+            return obj.element.section.course.creator == request.user
         # Для Course
-        return obj.creator == request.user
+        if hasattr(obj, 'creator'):
+            return obj.creator == request.user
+        return False
 
 
 class IsCourseOwnerForHomework(permissions.BasePermission):
@@ -113,6 +118,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_authenticated and user.is_admin:
             return Course.objects.all()
+        if user.is_authenticated and user.is_teacher:
+            # Преподаватель видит опубликованные курсы + свои собственные (включая черновики)
+            return Course.objects.filter(
+                Q(is_published=True) | Q(creator=user)
+            )
         return Course.objects.filter(is_published=True)
 
     def get_serializer_class(self):
@@ -465,8 +475,11 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
             'user'
         )
 
+        # Админы видят все ДЗ
+        if user.is_authenticated and user.is_admin:
+            pass  # Не фильтруем, админы видят всё
         # Преподаватель видит все ДЗ своих курсов + свои собственные
-        if user.is_teacher:
+        elif user.is_authenticated and user.is_teacher:
             queryset = queryset.filter(
                 Q(element__section__course__creator=user) | Q(user=user)
             )

@@ -1,22 +1,31 @@
-1. Общая цель
-Реализовать возможность для преподавателя просматривать, оценивать и комментировать прикреплённые студентами домашние задания, а также обеспечить студентам возможность просматривать полученные оценки и комментарии.
-
-2. Требования к функционалу
-2.1. Страница управления домашними заданиями (для преподавателя)
-На странице редактирования курса (или просмотра курса преподавателем) добавить элемент (иконка / текст / бейдж), отображающий количество прикреплённых домашних заданий по каждому разделу (модулю) курса.
-По клику на этот элемент — переход на отдельную страницу «Проверка домашних заданий».
-На этой странице:
-Отображается список разделов, в которых есть хотя бы одно прикреплённое ДЗ.
-Для каждого раздела — список студентов, прикрепивших ДЗ, с указанием:
-ФИО студента;
-Дата прикрепления;
-Ссылка/кнопка «Скачать файл(ы)».
-Для каждого прикреплённого ДЗ предусмотрены поля:
-Текстовое поле для комментария преподавателя (блок редактора, аналогичный используемому при наполнении курса — например, Rich Text Editor);
-Поле для оценки (числовое значение или выпадающий список — уточнить в дальнейшем, пока — текстовое поле с валидацией на число).
-Кнопка «Сохранить оценку» — сохраняет комментарий и оценку в БД.
-2.2. Отображение результата для студента
-На странице прохождения курса, в блоке прикрепления домашнего задания (под формой загрузки), если ДЗ уже проверено:
-Отображается оценка (только если она задана);
-Отображается комментарий преподавателя (в виде обычного текстового блока, стилизованного под «ответ преподавателя»).
-Если оценка и комментарий отсутствуют — ничего не отображается.
+Traceback (most recent call last):
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\apps\courses\views.py", line 520, in review
+    submission = self.get_object()
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\generics.py", line 103, in get_object
+    self.check_object_permissions(self.request, obj)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 351, in check_object_permissions
+    if not permission.has_object_permission(request, self, obj):
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ilya\Desktop\portal_summer\backend\apps\courses\views.py", line 79, in has_object_permission
+    return obj.creator == request.user
+           ^^^^^^^^^^^
+AttributeError: 'HomeworkSubmission' object has no attribute 'creator'

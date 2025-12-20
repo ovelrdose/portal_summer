@@ -269,7 +269,7 @@ class ContentElementDetailSerializer(serializers.ModelSerializer):
 
 
 class SectionSerializer(serializers.ModelSerializer):
-    elements = ContentElementSerializer(many=True, read_only=True)
+    elements = ContentElementDetailSerializer(many=True, read_only=True)
 
     class Meta:
         model = Section
