@@ -6,6 +6,7 @@ import {
 } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import BlockEditor from '../../components/BlockEditor';
+import { formatDateTimeLocal, dateTimeLocalToISO } from '../../utils/dateUtils';
 
 const CourseEditor = () => {
   const { id } = useParams();
@@ -35,7 +36,7 @@ const CourseEditor = () => {
   // Modal states
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
-  const [sectionForm, setSectionForm] = useState({ title: '', order: 0 });
+  const [sectionForm, setSectionForm] = useState({ title: '', order: 0, publish_datetime: '' });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -239,10 +240,14 @@ const CourseEditor = () => {
   const openSectionModal = (section = null) => {
     if (section) {
       setEditingSection(section);
-      setSectionForm({ title: section.title, order: section.order });
+      setSectionForm({
+        title: section.title,
+        order: section.order,
+        publish_datetime: formatDateTimeLocal(section.publish_datetime) || ''
+      });
     } else {
       setEditingSection(null);
-      setSectionForm({ title: '', order: sections.length });
+      setSectionForm({ title: '', order: sections.length, publish_datetime: '' });
     }
     setShowSectionModal(true);
   };
@@ -252,6 +257,9 @@ const CourseEditor = () => {
       const data = {
         title: sectionForm.title,
         order: isNaN(sectionForm.order) ? 0 : sectionForm.order,
+        publish_datetime: sectionForm.publish_datetime
+          ? dateTimeLocalToISO(sectionForm.publish_datetime)
+          : null,
       };
       if (editingSection) {
         await coursesAPI.updateSection(editingSection.id, data);
@@ -629,13 +637,24 @@ const CourseEditor = () => {
               onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })}
             />
           </Form.Group>
-          <Form.Group>
+          <Form.Group className="mb-3">
             <Form.Label>Порядок</Form.Label>
             <Form.Control
               type="number"
               value={sectionForm.order}
               onChange={(e) => setSectionForm({ ...sectionForm, order: parseInt(e.target.value) })}
             />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Дата и время открытия (опционально)</Form.Label>
+            <Form.Control
+              type="datetime-local"
+              value={sectionForm.publish_datetime}
+              onChange={(e) => setSectionForm({ ...sectionForm, publish_datetime: e.target.value })}
+            />
+            <Form.Text className="text-muted">
+              Если указано, раздел будет скрыт для студентов до этой даты
+            </Form.Text>
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>

@@ -166,6 +166,9 @@ export const coursesAPI = {
 
   // Block Editor - Reorder Elements
   reorderElements: (items) => api.post('/elements/reorder/', { items }),
+
+  // Course Schedule
+  getCourseSchedule: (courseId) => api.get(`/courses/${courseId}/schedule/`),
 };
 
 // Stats API

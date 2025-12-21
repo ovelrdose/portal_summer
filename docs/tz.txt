@@ -1,31 +1,37 @@
-Traceback (most recent call last):
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
-    response = get_response(request)
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
-    response = wrapped_callback(request, *callback_args, **callback_kwargs)
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
-    return view_func(request, *args, **kwargs)
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
-    return self.dispatch(request, *args, **kwargs)
-           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
-    response = self.handle_exception(exc)
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
-    self.raise_uncaught_exception(exc)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
-    raise exc
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\apps\courses\views.py", line 520, in review
-    submission = self.get_object()
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\generics.py", line 103, in get_object
-    self.check_object_permissions(self.request, obj)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\venv\Lib\site-packages\rest_framework\views.py", line 351, in check_object_permissions
-    if not permission.has_object_permission(request, self, obj):
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Ilya\Desktop\portal_summer\backend\apps\courses\views.py", line 79, in has_object_permission
-    return obj.creator == request.user
-           ^^^^^^^^^^^
-AttributeError: 'HomeworkSubmission' object has no attribute 'creator'
+1. Общее описание
+Необходимо реализовать возможность задания преподавателем даты и времени, начиная с которой студенты получают доступ к разделам и отдельным элементам курса. До наступления указанного времени студенты видят информационное сообщение вместо контента и могут ознакомиться с расписанием открытия материалов.
+
+2. Требования к функционалу
+2.1. Административная часть (для преподавателя)
+При создании или редактировании элемента курса (раздела или конкретного элемента, например, урока, задания, видео и т.п.) должна быть доступна опциональная настройка:
+Поле «Дата и время открытия» — тип: datetime (с возможностью указания даты и времени в формате ДД.ММ.ГГГГ ЧЧ:ММ).
+Если поле не заполнено — элемент доступен сразу после публикации.
+Если поле заполнено — элемент отображается студентам только после наступления указанной даты и времени.
+2.2. Студенческая часть (студент)
+Если студент переходит к элементу курса до наступления даты/времени открытия, вместо содержимого отображается:
+Информационное сообщение:
+«Этот элемент станет доступен ДД.ММ.ГГГГ в ЧЧ:ММ»
+(где ДД.ММ.ГГГГ ЧЧ:ММ — значение, указанное преподавателем).
+После наступления указанного времени элемент отображается в обычном режиме.
+2.3. Расписание открытия элементов курса
+На странице курса (внутри интерфейса студента), ниже кнопок управления курсом (например, «Отписаться от курса»), отображается блок «Расписание открытия материалов».
+В этом блоке отображается таблица или список со следующими колонками:
+Название курса (если отображается несколько курсов — иначе можно опустить);
+Раздел / Элемент курса (название);
+Дата и время открытия (в формате ДД.ММ.ГГГГ ЧЧ:ММ).
+В список попадают только те элементы, у которых задана дата открытия и которые ещё не стали доступны.
+После того как элемент становится доступен — он удаляется из расписания.
+3. Технические требования
+Все даты и времена хранятся в базе данных в UTC.
+Отображение даты и времени студенту — в его локальном часовом поясе (если система поддерживает локализацию; иначе — в часовом поясе сервера с указанием на это).
+При рендеринге страницы курса на стороне клиента (React) или сервера (Django) должна производиться проверка текущего времени относительно publish_datetime у каждого элемента.
+Поле publish_datetime должно быть добавлено в соответствующие модели
+API должен возвращать флаг is_locked и, при необходимости, unlock_datetime для каждого элемента курса.
+Блок расписания должен обновляться автоматически (без перезагрузки страницы) при изменении состояния элементов
+Необходимо предусмотреть защиту от обхода ограничений на клиенте — проверка доступности элемента обязательна на сервере при любом запросе контента.
+5. Пример UX-флоу
+Преподаватель создаёт урок → указывает дату открытия «01.02.2025 09:00».
+Студент заходит в курс 30.01.2025 → вместо урока видит сообщение: «Этот элемент станет доступен 01.02.2025 в 09:00».
+В блоке расписания у студента отображается строка:
+Урок 5: Введение в DevOps | 01.02.2025 09:00.
+После 01.02.2025 09:00 урок становится доступен, а запись исчезает из расписания.

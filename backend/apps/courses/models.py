@@ -113,15 +113,45 @@ class Section(models.Model):
     order = models.PositiveIntegerField('Порядок', default=0)
 
     is_published = models.BooleanField('Опубликовано', default=True)
+    publish_datetime = models.DateTimeField(
+        'Дата и время публикации',
+        null=True,
+        blank=True,
+        help_text='Если указано, раздел будет заблокирован до этой даты/времени (UTC)'
+    )
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Раздел'
         verbose_name_plural = 'Разделы'
         ordering = ['order', 'created_at']
+        indexes = [
+            models.Index(fields=['publish_datetime']),
+        ]
 
     def __str__(self):
         return f'{self.course.title} - {self.title}'
+
+    def is_locked_for_user(self, user) -> bool:
+        """
+        Проверяет, заблокирован ли раздел для конкретного пользователя.
+
+        Args:
+            user: Пользователь для проверки
+
+        Returns:
+            True если раздел заблокирован, False если доступен
+        """
+        # Преподаватели и админы видят всё
+        if user and user.is_authenticated and (user.is_admin or user.is_teacher):
+            return False
+
+        # Проверяем publish_datetime
+        if self.publish_datetime:
+            from django.utils import timezone
+            return timezone.now() < self.publish_datetime
+
+        return False
 
 
 class ContentElement(models.Model):
@@ -171,15 +201,45 @@ class ContentElement(models.Model):
 
     order = models.PositiveIntegerField('Порядок', default=0)
     is_published = models.BooleanField('Опубликовано', default=True)
+    publish_datetime = models.DateTimeField(
+        'Дата и время публикации',
+        null=True,
+        blank=True,
+        help_text='Если указано, элемент будет заблокирован до этой даты/времени (UTC)'
+    )
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Элемент контента'
         verbose_name_plural = 'Элементы контента'
         ordering = ['order', 'created_at']
+        indexes = [
+            models.Index(fields=['publish_datetime']),
+        ]
 
     def __str__(self):
         return f'{self.section} - {self.get_content_type_display()}'
+
+    def is_locked_for_user(self, user) -> bool:
+        """
+        Проверяет, заблокирован ли элемент для конкретного пользователя.
+
+        Args:
+            user: Пользователь для проверки
+
+        Returns:
+            True если элемент заблокирован, False если доступен
+        """
+        # Преподаватели и админы видят всё
+        if user and user.is_authenticated and (user.is_admin or user.is_teacher):
+            return False
+
+        # Проверяем publish_datetime элемента
+        if self.publish_datetime:
+            from django.utils import timezone
+            return timezone.now() < self.publish_datetime
+
+        return False
 
 
 class HomeworkSubmission(models.Model):

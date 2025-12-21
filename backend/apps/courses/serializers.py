@@ -221,13 +221,31 @@ class HomeworkReviewHistorySerializer(serializers.ModelSerializer):
 
 class ContentElementSerializer(serializers.ModelSerializer):
     """Сериализатор элемента контента с новым форматом данных"""
+    is_locked = serializers.SerializerMethodField()
+    unlock_datetime = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentElement
         fields = [
             'id', 'section', 'content_type', 'title', 'data',
-            'order', 'is_published'
+            'order', 'is_published', 'publish_datetime', 'is_locked', 'unlock_datetime'
         ]
+
+    def get_is_locked(self, obj):
+        """Проверяет, заблокирован ли элемент для текущего пользователя"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.is_locked_for_user(request.user)
+        return obj.is_locked_for_user(None)
+
+    def get_unlock_datetime(self, obj):
+        """Возвращает дату разблокировки, если элемент заблокирован"""
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+
+        if obj.is_locked_for_user(user):
+            return obj.publish_datetime
+        return None
 
     def validate(self, attrs):
         """Валидируем данные блока согласно его типу"""
@@ -251,13 +269,31 @@ class ContentElementSerializer(serializers.ModelSerializer):
 class ContentElementDetailSerializer(serializers.ModelSerializer):
     """Сериализатор с информацией о сданных ДЗ для текущего пользователя"""
     my_submission = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
+    unlock_datetime = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentElement
         fields = [
             'id', 'section', 'content_type', 'title', 'data',
-            'order', 'is_published', 'my_submission'
+            'order', 'is_published', 'publish_datetime', 'is_locked', 'unlock_datetime', 'my_submission'
         ]
+
+    def get_is_locked(self, obj):
+        """Проверяет, заблокирован ли элемент для текущего пользователя"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.is_locked_for_user(request.user)
+        return obj.is_locked_for_user(None)
+
+    def get_unlock_datetime(self, obj):
+        """Возвращает дату разблокировки, если элемент заблокирован"""
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+
+        if obj.is_locked_for_user(user):
+            return obj.publish_datetime
+        return None
 
     def get_my_submission(self, obj):
         request = self.context.get('request')
@@ -267,22 +303,91 @@ class ContentElementDetailSerializer(serializers.ModelSerializer):
                 return HomeworkSubmissionSerializer(submission).data
         return None
 
+    def to_representation(self, instance):
+        """Скрывает контент для заблокированных элементов"""
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+
+        # Если элемент заблокирован для студента - скрываем контент
+        if instance.is_locked_for_user(user):
+            representation['data'] = {}
+            representation['my_submission'] = None
+
+        return representation
+
 
 class SectionSerializer(serializers.ModelSerializer):
     elements = ContentElementDetailSerializer(many=True, read_only=True)
+    is_locked = serializers.SerializerMethodField()
+    unlock_datetime = serializers.SerializerMethodField()
 
     class Meta:
         model = Section
-        fields = ['id', 'course', 'title', 'order', 'is_published', 'elements']
+        fields = ['id', 'course', 'title', 'order', 'is_published', 'publish_datetime', 'is_locked', 'unlock_datetime', 'elements']
+
+    def get_is_locked(self, obj):
+        """Проверяет, заблокирован ли раздел для текущего пользователя"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.is_locked_for_user(request.user)
+        return obj.is_locked_for_user(None)
+
+    def get_unlock_datetime(self, obj):
+        """Возвращает дату разблокировки, если раздел заблокирован"""
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+
+        if obj.is_locked_for_user(user):
+            return obj.publish_datetime
+        return None
+
+    def to_representation(self, instance):
+        """Фильтрует заблокированные элементы для студентов"""
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+
+        # Если раздел заблокирован для студента - скрываем элементы
+        if instance.is_locked_for_user(user):
+            representation['elements'] = []
+        else:
+            # Фильтруем заблокированные элементы
+            elements = representation.get('elements', [])
+            if user and not (user.is_admin or user.is_teacher):
+                # Для студентов - показываем только разблокированные элементы
+                representation['elements'] = [
+                    elem for elem in elements if not elem.get('is_locked', False)
+                ]
+
+        return representation
 
 
 class SectionListSerializer(serializers.ModelSerializer):
     """Для списка разделов без элементов"""
     elements_count = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
+    unlock_datetime = serializers.SerializerMethodField()
 
     class Meta:
         model = Section
-        fields = ['id', 'course', 'title', 'order', 'is_published', 'elements_count']
+        fields = ['id', 'course', 'title', 'order', 'is_published', 'publish_datetime', 'is_locked', 'unlock_datetime', 'elements_count']
+
+    def get_is_locked(self, obj):
+        """Проверяет, заблокирован ли раздел для текущего пользователя"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.is_locked_for_user(request.user)
+        return obj.is_locked_for_user(None)
+
+    def get_unlock_datetime(self, obj):
+        """Возвращает дату разблокировки, если раздел заблокирован"""
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+
+        if obj.is_locked_for_user(user):
+            return obj.publish_datetime
+        return None
 
     def get_elements_count(self, obj):
         return obj.elements.count()
@@ -421,3 +526,13 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             obj.course,
             context=self.context
         ).data
+
+
+class CourseScheduleItemSerializer(serializers.Serializer):
+    """Сериализатор для элементов расписания курса"""
+    item_type = serializers.CharField()  # 'section' or 'element'
+    item_id = serializers.IntegerField()
+    section_title = serializers.CharField()
+    element_title = serializers.CharField(allow_null=True, required=False)
+    element_type = serializers.CharField(allow_null=True, required=False)
+    unlock_datetime = serializers.DateTimeField()

@@ -6,6 +6,8 @@ import {
 } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import CourseSchedule from '../../components/CourseSchedule';
+import { isContentLocked, formatDateTimeDisplay } from '../../utils/dateUtils';
 
 const CourseDetailPage = () => {
   const { id } = useParams();
@@ -42,6 +44,23 @@ const CourseDetailPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course, user, id]);
+
+  useEffect(() => {
+    // Set up polling every 60 seconds
+    const isOwner = course?.creator?.id === user?.id;
+    const canEdit = isOwner || user?.is_admin;
+
+    if (course && (course.is_subscribed || canEdit)) {
+      const interval = setInterval(() => {
+        loadCourse();
+      }, 60000); // 60 seconds
+
+      return () => {
+        clearInterval(interval);
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course?.id, course?.is_subscribed, user?.id, user?.is_admin]);
 
   const loadCourse = async () => {
     try {
@@ -228,13 +247,23 @@ const CourseDetailPage = () => {
             dangerouslySetInnerHTML={{ __html: course.description }}
           />
 
+          {/* Course Schedule */}
+          {(course.is_subscribed || canEdit) && (
+            <CourseSchedule courseId={id} />
+          )}
+
           {/* Course Sections */}
           <h3 className="mb-3">Содержание курса</h3>
           {course.is_subscribed || canEdit ? (
             course.sections?.length > 0 ? (
               <Accordion defaultActiveKey="0" style={{ position: 'relative', zIndex: 1 }}>
                 {course.sections
-                  .filter((s) => s.is_published)
+                  .filter((s) => {
+                    // Teachers and admins see all sections
+                    if (canEdit) return s.is_published;
+                    // Students only see published and unlocked sections
+                    return s.is_published && !isContentLocked(s.publish_datetime);
+                  })
                   .map((section, index) => {
                     const stat = homeworkStats.find(s => s.section_id === section.id);
 
@@ -242,7 +271,16 @@ const CourseDetailPage = () => {
                     <Accordion.Item key={section.id} eventKey={String(index)} className="mb-3">
                       <Accordion.Header>
                         <div className="d-flex align-items-center">
+                          {section.is_locked && !canEdit && (
+                            <i className="bi bi-lock-fill text-muted me-2"
+                               title={`Откроется ${formatDateTimeDisplay(section.unlock_datetime)}`}></i>
+                          )}
                           <span>{section.title}</span>
+                          {canEdit && section.publish_datetime && isContentLocked(section.publish_datetime) && (
+                            <Badge bg="secondary" className="ms-2">
+                              <i className="bi bi-lock"></i> До {formatDateTimeDisplay(section.publish_datetime)}
+                            </Badge>
+                          )}
                           {canEdit && stat && stat.total_submissions > 0 && (
                             <Badge
                               bg={stat.submitted_count > 0 ? 'warning' : 'success'}
@@ -255,13 +293,41 @@ const CourseDetailPage = () => {
                       </Accordion.Header>
                       <Accordion.Body>
                         {section.elements
-                          ?.filter((e) => e.is_published)
+                          ?.filter((e) => {
+                            if (canEdit) return e.is_published;
+                            return e.is_published && !isContentLocked(e.publish_datetime);
+                          })
                           .map((element) => (
                             <div key={element.id} className="mb-3 pb-3 border-bottom">
-                              {element.title && <h5>{element.title}</h5>}
+                              {element.title && (
+                                <h5>
+                                  {element.is_locked && !canEdit && (
+                                    <i className="bi bi-lock-fill text-muted me-2"
+                                       title={`Откроется ${formatDateTimeDisplay(element.unlock_datetime)}`}></i>
+                                  )}
+                                  {element.title}
+                                  {canEdit && element.data?.publish_datetime && isContentLocked(element.data.publish_datetime) && (
+                                    <Badge bg="secondary" className="ms-2">
+                                      <i className="bi bi-lock"></i> До {formatDateTimeDisplay(element.data.publish_datetime)}
+                                    </Badge>
+                                  )}
+                                </h5>
+                              )}
 
-                              {/* Текстовый блок */}
-                              {element.content_type === 'text' && (
+                              {/* Check if element is locked for students */}
+                              {element.is_locked && !canEdit ? (
+                                <Alert variant="info" className="d-flex align-items-center">
+                                  <i className="bi bi-lock-fill fs-1 me-3"></i>
+                                  <div>
+                                    <strong>Этот элемент станет доступен</strong>
+                                    <br />
+                                    {formatDateTimeDisplay(element.unlock_datetime)}
+                                  </div>
+                                </Alert>
+                              ) : (
+                                <>
+                                  {/* Текстовый блок */}
+                                  {element.content_type === 'text' && (
                                 <div
                                   dangerouslySetInnerHTML={{
                                     __html: element.data?.html || element.text_content || '',
@@ -425,6 +491,8 @@ const CourseDetailPage = () => {
                                     )}
                                   </Card.Body>
                                 </Card>
+                              )}
+                                </>
                               )}
                             </div>
                           ))}

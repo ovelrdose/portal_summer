@@ -28,7 +28,8 @@ from .serializers import (
     ContentElementDetailSerializer,
     HomeworkSubmissionSerializer,
     HomeworkReviewHistorySerializer,
-    SubscriptionSerializer
+    SubscriptionSerializer,
+    CourseScheduleItemSerializer
 )
 from apps.users.permissions import IsAdmin, IsTeacher, IsOwnerOrAdmin
 from apps.users.serializers import UserPublicSerializer
@@ -246,6 +247,66 @@ class CourseViewSet(viewsets.ModelViewSet):
         course.save()
         return Response({'status': 'Курс снят с публикации'})
 
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def schedule(self, request, pk=None):
+        """
+        Возвращает расписание открытия материалов курса.
+        Показывает только заблокированные элементы с датами открытия.
+        """
+        course = self.get_object()
+        user = request.user
+        now = timezone.now()
+
+        # Проверяем, что пользователь подписан на курс или является его владельцем
+        is_subscribed = course.subscribers.filter(id=user.id).exists()
+        is_owner = course.creator == user or user.is_admin or user.is_teacher
+
+        if not (is_subscribed or is_owner):
+            return Response(
+                {'error': 'Вы должны быть подписаны на курс'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        schedule_items = []
+
+        # Получаем все разделы курса
+        sections = course.sections.filter(is_published=True).select_related('course')
+
+        for section in sections:
+            # Если раздел заблокирован
+            if section.publish_datetime and section.publish_datetime > now:
+                # Для студентов - показываем в расписании
+                # Для преподавателей - тоже показываем (они видят, что запланировано)
+                schedule_items.append({
+                    'item_type': 'section',
+                    'item_id': section.id,
+                    'section_title': section.title,
+                    'element_title': None,
+                    'element_type': None,
+                    'unlock_datetime': section.publish_datetime
+                })
+
+            # Получаем элементы раздела
+            elements = section.elements.filter(is_published=True)
+
+            for element in elements:
+                # Если элемент заблокирован
+                if element.publish_datetime and element.publish_datetime > now:
+                    schedule_items.append({
+                        'item_type': 'element',
+                        'item_id': element.id,
+                        'section_title': section.title,
+                        'element_title': element.title or element.get_content_type_display(),
+                        'element_type': element.get_content_type_display(),
+                        'unlock_datetime': element.publish_datetime
+                    })
+
+        # Сортируем по дате открытия
+        schedule_items.sort(key=lambda x: x['unlock_datetime'])
+
+        serializer = CourseScheduleItemSerializer(schedule_items, many=True)
+        return Response(serializer.data)
+
 
 class SectionViewSet(viewsets.ModelViewSet):
     """ViewSet для управления разделами курса"""
@@ -268,6 +329,25 @@ class SectionViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
         return [IsCourseOwnerOrAdmin()]
+
+    def retrieve(self, request, *args, **kwargs):
+        """Получить детальную информацию о разделе с проверкой блокировки"""
+        instance = self.get_object()
+        user = request.user
+
+        # Проверяем, заблокирован ли раздел для этого пользователя
+        if instance.is_locked_for_user(user):
+            return Response(
+                {
+                    'error': 'Раздел заблокирован',
+                    'unlock_datetime': instance.publish_datetime,
+                    'is_locked': True
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class ContentElementViewSet(viewsets.ModelViewSet):
@@ -293,6 +373,25 @@ class ContentElementViewSet(viewsets.ModelViewSet):
         if self.action == 'upload_image':
             return [IsCourseOwnerOrAdmin()]
         return [IsCourseOwnerOrAdmin()]
+
+    def retrieve(self, request, *args, **kwargs):
+        """Получить детальную информацию об элементе с проверкой блокировки"""
+        instance = self.get_object()
+        user = request.user
+
+        # Проверяем, заблокирован ли элемент для этого пользователя
+        if instance.is_locked_for_user(user):
+            return Response(
+                {
+                    'error': 'Элемент заблокирован',
+                    'unlock_datetime': instance.publish_datetime,
+                    'is_locked': True
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     @action(
         detail=False,
