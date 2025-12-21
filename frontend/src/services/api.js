@@ -137,7 +137,18 @@ export const coursesAPI = {
     api.post(`/homework/${id}/review/`, {
       teacher_comment: data.comment,
       grade: data.grade,
+      request_revision: data.request_revision || false,
     }),
+  resubmitHomework: (id, data) => {
+    const formData = new FormData();
+    formData.append('file', data.file);
+    if (data.comment) {
+      formData.append('comment', data.comment);
+    }
+    return api.patch(`/homework/${id}/resubmit/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   getHomeworkStatsByCourse: (courseId) =>
     api.get(`/homework/section-stats/?course_id=${courseId}`),
   getHomeworkReviewHistory: (submissionId) =>

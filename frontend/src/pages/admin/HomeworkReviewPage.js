@@ -24,6 +24,7 @@ const HomeworkReviewPage = () => {
   const [grade, setGrade] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isRevisionMode, setIsRevisionMode] = useState(false);
 
   // History Modal
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -61,10 +62,11 @@ const HomeworkReviewPage = () => {
     }
   };
 
-  const openReviewModal = (homework) => {
+  const openReviewModal = (homework, isRevisionMode = false) => {
     setSelectedHomework(homework);
     setGrade(homework.grade || 0);
     setComment(homework.teacher_comment || '');
+    setIsRevisionMode(isRevisionMode);
     setShowReviewModal(true);
   };
 
@@ -73,8 +75,9 @@ const HomeworkReviewPage = () => {
     setSubmitting(true);
     try {
       await coursesAPI.reviewHomework(selectedHomework.id, {
-        grade,
-        comment,
+        grade: isRevisionMode ? undefined : grade,
+        teacher_comment: comment,
+        request_revision: isRevisionMode,
       });
       setShowReviewModal(false);
       loadHomeworks();
@@ -109,6 +112,9 @@ const HomeworkReviewPage = () => {
       return false;
     }
     if (statusFilter === 'reviewed' && hw.status !== 'reviewed') {
+      return false;
+    }
+    if (statusFilter === 'revision_requested' && hw.status !== 'revision_requested') {
       return false;
     }
     return true;
@@ -180,6 +186,7 @@ const HomeworkReviewPage = () => {
                 >
                   <option value="all">Все</option>
                   <option value="submitted">Ожидают проверки</option>
+                  <option value="revision_requested">Требует доработки</option>
                   <option value="reviewed">Проверено</option>
                 </Form.Select>
               </Form.Group>
@@ -253,8 +260,18 @@ const HomeworkReviewPage = () => {
                               Задание: {hw.element?.title || 'Без названия'}
                             </small>
                           </div>
-                          <Badge bg={hw.status === 'reviewed' ? 'success' : 'warning'}>
-                            {hw.status === 'reviewed' ? 'Проверено' : 'Ожидает проверки'}
+                          <Badge bg={
+                            hw.status === 'reviewed'
+                              ? 'success'
+                              : hw.status === 'revision_requested'
+                              ? 'warning'
+                              : 'info'
+                          }>
+                            {hw.status === 'reviewed'
+                              ? 'Проверено'
+                              : hw.status === 'revision_requested'
+                              ? 'Требует доработки'
+                              : 'Ожидает проверки'}
                           </Badge>
                         </div>
 
@@ -322,14 +339,51 @@ const HomeworkReviewPage = () => {
                           </Card>
                         )}
 
+                        {hw.status === 'revision_requested' && (
+                          <Alert variant="warning" className="mt-2 mb-2">
+                            <strong>Задание возвращено студенту на доработку</strong>
+                            {hw.teacher_comment && (
+                              <div className="mt-2">
+                                <small>Комментарий:</small>
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: hw.teacher_comment,
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {hw.reviewed_at && (
+                              <div className="mt-1">
+                                <small className="text-muted">
+                                  Возвращено:{' '}
+                                  {new Date(hw.reviewed_at).toLocaleString('ru-RU')}
+                                </small>
+                              </div>
+                            )}
+                          </Alert>
+                        )}
+
                         <div className="mt-3 d-flex gap-2">
-                          <Button
-                            variant={hw.status === 'reviewed' ? 'outline-primary' : 'primary'}
-                            size="sm"
-                            onClick={() => openReviewModal(hw)}
-                          >
-                            {hw.status === 'reviewed' ? 'Изменить оценку' : 'Проверить'}
-                          </Button>
+                          {hw.status !== 'revision_requested' && (
+                            <>
+                              <Button
+                                variant={hw.status === 'reviewed' ? 'outline-primary' : 'primary'}
+                                size="sm"
+                                onClick={() => openReviewModal(hw, false)}
+                              >
+                                {hw.status === 'reviewed' ? 'Изменить оценку' : 'Проверить'}
+                              </Button>
+                              {hw.status !== 'reviewed' && (
+                                <Button
+                                  variant="warning"
+                                  size="sm"
+                                  onClick={() => openReviewModal(hw, true)}
+                                >
+                                  Вернуть на доработку
+                                </Button>
+                              )}
+                            </>
+                          )}
                           {hw.status === 'reviewed' && (
                             <Button
                               variant="outline-secondary"
@@ -386,7 +440,7 @@ const HomeworkReviewPage = () => {
 
             <Form.Group className="mb-3">
               <Form.Label>
-                Оценка (0-100) *
+                Оценка (0-100) {!isRevisionMode && '*'}
               </Form.Label>
               <Form.Control
                 type="number"
@@ -394,8 +448,14 @@ const HomeworkReviewPage = () => {
                 max="100"
                 value={grade}
                 onChange={(e) => setGrade(parseInt(e.target.value, 10))}
-                required
+                required={!isRevisionMode}
+                disabled={isRevisionMode}
               />
+              {isRevisionMode && (
+                <Form.Text className="text-muted">
+                  Оценка не выставляется при возврате на доработку
+                </Form.Text>
+              )}
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -412,7 +472,11 @@ const HomeworkReviewPage = () => {
               Отмена
             </Button>
             <Button variant="primary" type="submit" disabled={submitting}>
-              {submitting ? 'Сохранение...' : 'Сохранить оценку'}
+              {submitting
+                ? 'Сохранение...'
+                : isRevisionMode
+                ? 'Вернуть на доработку'
+                : 'Сохранить оценку'}
             </Button>
           </Modal.Footer>
         </Form>

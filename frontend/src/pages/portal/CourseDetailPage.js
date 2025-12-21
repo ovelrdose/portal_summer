@@ -22,6 +22,11 @@ const CourseDetailPage = () => {
   const [toast, setToast] = useState({ show: false, message: '', variant: 'success' });
   const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
   const [homeworkStats, setHomeworkStats] = useState([]);
+  const [showResubmitModal, setShowResubmitModal] = useState(false);
+  const [resubmitElement, setResubmitElement] = useState(null);
+  const [resubmitFile, setResubmitFile] = useState(null);
+  const [resubmitComment, setResubmitComment] = useState('');
+  const [resubmitting, setResubmitting] = useState(false);
 
   useEffect(() => {
     loadCourse();
@@ -124,6 +129,47 @@ const CourseDetailPage = () => {
       setError(errorMessage);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openResubmitModal = (element) => {
+    setResubmitElement(element);
+    setResubmitComment(element.my_submission?.comment || '');
+    setShowResubmitModal(true);
+    setError('');
+  };
+
+  const handleResubmit = async (e) => {
+    e.preventDefault();
+    if (!resubmitFile) {
+      setError('Выберите файл');
+      return;
+    }
+
+    setResubmitting(true);
+    try {
+      await coursesAPI.resubmitHomework(resubmitElement.my_submission.id, {
+        file: resubmitFile,
+        comment: resubmitComment,
+      });
+      setShowResubmitModal(false);
+      setResubmitFile(null);
+      setResubmitComment('');
+      setError('');
+      setToast({
+        show: true,
+        message: 'Работа успешно переотправлена!',
+        variant: 'success'
+      });
+      loadCourse();
+    } catch (err) {
+      console.error('Resubmit homework error:', err);
+      const errorMessage = err.response?.data?.error
+        || err.response?.data?.detail
+        || 'Ошибка при переотправке задания';
+      setError(errorMessage);
+    } finally {
+      setResubmitting(false);
     }
   };
 
@@ -328,6 +374,38 @@ const CourseDetailPage = () => {
                                             )}
                                           </Card.Body>
                                         </Card>
+                                      ) : element.my_submission.status === 'revision_requested' ? (
+                                        <Card className="mt-3" style={{ borderLeft: '4px solid #ffc107' }}>
+                                          <Card.Body>
+                                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                              <strong>Статус:</strong>
+                                              <Badge bg="warning">Требует доработки</Badge>
+                                            </div>
+                                            {element.my_submission.reviewed_at && (
+                                              <p className="text-muted small mb-2">
+                                                Проверено:{' '}
+                                                {new Date(element.my_submission.reviewed_at).toLocaleString('ru-RU')}
+                                              </p>
+                                            )}
+                                            {element.my_submission.teacher_comment && (
+                                              <div className="mb-3">
+                                                <strong>Комментарий преподавателя:</strong>
+                                                <div
+                                                  className="mt-1"
+                                                  dangerouslySetInnerHTML={{
+                                                    __html: element.my_submission.teacher_comment,
+                                                  }}
+                                                />
+                                              </div>
+                                            )}
+                                            <Button
+                                              variant="warning"
+                                              onClick={() => openResubmitModal(element)}
+                                            >
+                                              Загрузить исправленную работу
+                                            </Button>
+                                          </Card.Body>
+                                        </Card>
                                       ) : (
                                         <Alert variant="info">
                                           <strong>Статус:</strong> Отправлено, ожидает проверки
@@ -499,6 +577,68 @@ const CourseDetailPage = () => {
             </Button>
             <Button variant="primary" type="submit" disabled={submitting}>
               {submitting ? 'Отправка...' : 'Отправить'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Resubmit Homework Modal */}
+      <Modal show={showResubmitModal} onHide={() => setShowResubmitModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Загрузить исправленную работу</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleResubmit}>
+          <Modal.Body>
+            {error && <Alert variant="danger">{error}</Alert>}
+
+            {resubmitElement?.my_submission?.teacher_comment && (
+              <Alert variant="warning">
+                <strong>Комментарий преподавателя:</strong>
+                <div
+                  className="mt-2"
+                  dangerouslySetInnerHTML={{
+                    __html: resubmitElement.my_submission.teacher_comment,
+                  }}
+                />
+              </Alert>
+            )}
+
+            <Form.Group className="mb-3">
+              <Form.Label>Загрузить исправленный файл *</Form.Label>
+              <Form.Control
+                type="file"
+                onChange={(e) => setResubmitFile(e.target.files[0])}
+                required
+              />
+              <Form.Text className="text-muted">
+                Предыдущий файл будет заменен
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Комментарий (опционально)</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={resubmitComment}
+                onChange={(e) => setResubmitComment(e.target.value)}
+                placeholder="Опишите внесенные изменения..."
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowResubmitModal(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={resubmitting}
+            >
+              {resubmitting ? 'Отправка...' : 'Отправить'}
             </Button>
           </Modal.Footer>
         </Form>

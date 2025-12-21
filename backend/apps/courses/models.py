@@ -187,6 +187,7 @@ class HomeworkSubmission(models.Model):
     class Status(models.TextChoices):
         SUBMITTED = 'submitted', 'Отправлено'
         REVIEWED = 'reviewed', 'Проверено'
+        REVISION_REQUESTED = 'revision_requested', 'Требует доработки'
 
     element = models.ForeignKey(
         ContentElement,

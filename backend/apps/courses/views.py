@@ -513,11 +513,13 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsTeacher, IsCourseOwnerForHomework])
     def review(self, request, pk=None):
         """
-        Проверить домашнее задание и оставить оценку с комментарием.
+        Проверить домашнее задание и оставить оценку с комментарием,
+        либо вернуть на доработку без оценки.
 
         Request body:
             grade (int, optional): Оценка от 0 до 100
             teacher_comment (str, optional): Комментарий преподавателя
+            request_revision (bool, optional): Вернуть на доработку без оценки
 
         Returns:
             Обновленный объект HomeworkSubmission через сериализатор
@@ -552,12 +554,79 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
                 teacher_comment=teacher_comment
             )
 
-            # Обновляем submission
-            submission.status = HomeworkSubmission.Status.REVIEWED
-            submission.grade = grade
+            # Определяем статус на основе параметра request_revision и наличия оценки
+            request_revision = request.data.get('request_revision', False)
+            if request_revision or grade is None:
+                # Возврат на доработку без оценки
+                submission.status = HomeworkSubmission.Status.REVISION_REQUESTED
+                submission.grade = None
+            else:
+                # Обычная проверка с оценкой
+                submission.status = HomeworkSubmission.Status.REVIEWED
+                submission.grade = grade
+
             submission.teacher_comment = teacher_comment
             submission.reviewed_at = timezone.now()
             submission.save(update_fields=['status', 'grade', 'teacher_comment', 'reviewed_at'])
+
+        # Возвращаем обновленный объект через сериализатор
+        serializer = self.get_serializer(submission)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
+    def resubmit(self, request, pk=None):
+        """
+        Повторная отправка домашнего задания после возврата на доработку.
+
+        Требования:
+        - Пользователь должен быть владельцем submission
+        - Статус submission должен быть REVISION_REQUESTED
+
+        Request body (multipart/form-data):
+            file (обязательно): новый файл
+            comment (опционально): обновленный комментарий
+
+        Returns:
+            Обновленный объект HomeworkSubmission через сериализатор
+        """
+        submission = self.get_object()
+
+        # Проверка прав: пользователь должен быть владельцем submission
+        if submission.user != request.user:
+            return Response(
+                {'error': 'У вас нет прав на изменение этой работы'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Проверка статуса: можно переотправить только работы, требующие доработки
+        if submission.status != HomeworkSubmission.Status.REVISION_REQUESTED:
+            return Response(
+                {'error': 'Можно переотправить только работы, требующие доработки'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Получаем новый файл (обязательно)
+        new_file = request.FILES.get('file')
+        if not new_file:
+            return Response(
+                {'error': 'Необходимо прикрепить файл'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Удаляем старый файл для экономии места
+        if submission.file:
+            submission.file.delete(save=False)
+
+        # Обновляем submission
+        submission.file = new_file
+        submission.comment = request.data.get('comment', submission.comment)
+        submission.status = HomeworkSubmission.Status.SUBMITTED
+        submission.submitted_at = timezone.now()
+        submission.reviewed_at = None  # Сбрасываем, будет установлено при новой проверке
+
+        submission.save(update_fields=[
+            'file', 'comment', 'status', 'submitted_at', 'reviewed_at'
+        ])
 
         # Возвращаем обновленный объект через сериализатор
         serializer = self.get_serializer(submission)
