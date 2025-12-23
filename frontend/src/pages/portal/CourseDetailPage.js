@@ -6,7 +6,7 @@ import {
 } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import CourseSchedule from '../../components/CourseSchedule';
+import LockedContentAlert from '../../components/LockedContentAlert';
 import { isContentLocked, formatDateTimeDisplay } from '../../utils/dateUtils';
 
 const CourseDetailPage = () => {
@@ -141,10 +141,20 @@ const CourseDetailPage = () => {
       loadCourse();
     } catch (err) {
       console.error('Submit homework error:', err);
-      const errorMessage = err.response?.data?.element_id?.[0]
-        || err.response?.data?.file?.[0]
-        || err.response?.data?.detail
-        || 'Ошибка при отправке задания';
+      // Обработка ошибки валидации дедлайна и других ошибок
+      const errorData = err.response?.data;
+      let errorMessage = 'Ошибка при отправке задания';
+
+      if (errorData?.non_field_errors?.[0]) {
+        errorMessage = errorData.non_field_errors[0];
+      } else if (errorData?.element_id?.[0]) {
+        errorMessage = errorData.element_id[0];
+      } else if (errorData?.file?.[0]) {
+        errorMessage = errorData.file[0];
+      } else if (errorData?.detail) {
+        errorMessage = errorData.detail;
+      }
+
       setError(errorMessage);
     } finally {
       setSubmitting(false);
@@ -247,11 +257,6 @@ const CourseDetailPage = () => {
             dangerouslySetInnerHTML={{ __html: course.description }}
           />
 
-          {/* Course Schedule */}
-          {(course.is_subscribed || canEdit) && (
-            <CourseSchedule courseId={id} />
-          )}
-
           {/* Course Sections */}
           <h3 className="mb-3">Содержание курса</h3>
           {course.is_subscribed || canEdit ? (
@@ -259,23 +264,27 @@ const CourseDetailPage = () => {
               <Accordion defaultActiveKey="0" style={{ position: 'relative', zIndex: 1 }}>
                 {course.sections
                   .filter((s) => {
-                    // Teachers and admins see all sections
-                    if (canEdit) return s.is_published;
-                    // Students only see published and unlocked sections
-                    return s.is_published && !isContentLocked(s.publish_datetime);
+                    // Both teachers and students see all published sections
+                    return s.is_published;
                   })
                   .map((section, index) => {
                     const stat = homeworkStats.find(s => s.section_id === section.id);
+                    const isSectionLocked = !canEdit && isContentLocked(section.publish_datetime);
 
                     return (
                     <Accordion.Item key={section.id} eventKey={String(index)} className="mb-3">
                       <Accordion.Header>
-                        <div className="d-flex align-items-center">
-                          {section.is_locked && !canEdit && (
-                            <i className="bi bi-lock-fill text-muted me-2"
-                               title={`Откроется ${formatDateTimeDisplay(section.unlock_datetime)}`}></i>
+                        <div className="d-flex align-items-center w-100">
+                          {isSectionLocked && (
+                            <i className="bi bi-lock-fill text-warning me-2"
+                               title={`Откроется ${formatDateTimeDisplay(section.publish_datetime)}`}></i>
                           )}
-                          <span>{section.title}</span>
+                          <span className={isSectionLocked ? 'text-muted' : ''}>{section.title}</span>
+                          {isSectionLocked && (
+                            <Badge bg="warning" className="ms-2">
+                              <i className="bi bi-clock"></i> Откроется {formatDateTimeDisplay(section.publish_datetime)}
+                            </Badge>
+                          )}
                           {canEdit && section.publish_datetime && isContentLocked(section.publish_datetime) && (
                             <Badge bg="secondary" className="ms-2">
                               <i className="bi bi-lock"></i> До {formatDateTimeDisplay(section.publish_datetime)}
@@ -292,38 +301,41 @@ const CourseDetailPage = () => {
                         </div>
                       </Accordion.Header>
                       <Accordion.Body>
-                        {section.elements
-                          ?.filter((e) => {
-                            if (canEdit) return e.is_published;
-                            return e.is_published && !isContentLocked(e.publish_datetime);
-                          })
-                          .map((element) => (
+                        {isSectionLocked ? (
+                          <LockedContentAlert unlockDatetime={section.publish_datetime} />
+                        ) : (
+                          section.elements
+                            ?.filter((e) => {
+                              if (canEdit) return e.is_published;
+                              return e.is_published && !isContentLocked(e.publish_datetime);
+                            })
+                            .map((element) => {
+                            // Check if element is locked for students (double protection)
+                            const isElementLocked = element.is_locked && !canEdit;
+
+                            return (
                             <div key={element.id} className="mb-3 pb-3 border-bottom">
                               {element.title && (
                                 <h5>
-                                  {element.is_locked && !canEdit && (
+                                  {isElementLocked && (
                                     <i className="bi bi-lock-fill text-muted me-2"
                                        title={`Откроется ${formatDateTimeDisplay(element.unlock_datetime)}`}></i>
                                   )}
                                   {element.title}
-                                  {canEdit && element.data?.publish_datetime && isContentLocked(element.data.publish_datetime) && (
+                                  {canEdit && element.publish_datetime && isContentLocked(element.publish_datetime) && (
                                     <Badge bg="secondary" className="ms-2">
-                                      <i className="bi bi-lock"></i> До {formatDateTimeDisplay(element.data.publish_datetime)}
+                                      <i className="bi bi-lock"></i> До {formatDateTimeDisplay(element.publish_datetime)}
                                     </Badge>
                                   )}
                                 </h5>
                               )}
 
-                              {/* Check if element is locked for students */}
-                              {element.is_locked && !canEdit ? (
-                                <Alert variant="info" className="d-flex align-items-center">
-                                  <i className="bi bi-lock-fill fs-1 me-3"></i>
-                                  <div>
-                                    <strong>Этот элемент станет доступен</strong>
-                                    <br />
-                                    {formatDateTimeDisplay(element.unlock_datetime)}
-                                  </div>
-                                </Alert>
+                              {/* If element is locked for students - show lock message and nothing else */}
+                              {isElementLocked ? (
+                                <LockedContentAlert
+                                  unlockDatetime={element.unlock_datetime}
+                                  size="normal"
+                                />
                               ) : (
                                 <>
                                   {/* Текстовый блок */}
@@ -351,10 +363,10 @@ const CourseDetailPage = () => {
                               )}
 
                               {/* Изображение */}
-                              {element.content_type === 'image' && (
+                              {element.content_type === 'image' && element.data?.url && (
                                 <figure>
                                   <img
-                                    src={element.data?.url || element.image}
+                                    src={element.data.url}
                                     alt={element.data?.alt || element.title || 'Изображение'}
                                     className="img-fluid rounded"
                                   />
@@ -367,14 +379,14 @@ const CourseDetailPage = () => {
                               )}
 
                               {/* Ссылка */}
-                              {element.content_type === 'link' && (
+                              {element.content_type === 'link' && element.data?.url && (
                                 <a
-                                  href={element.data?.url || element.link_url}
+                                  href={element.data.url}
                                   target={element.data?.open_in_new_tab !== false ? '_blank' : '_self'}
                                   rel="noopener noreferrer"
                                   className="btn btn-outline-primary"
                                 >
-                                  {element.data?.text || element.link_text || element.data?.url || element.link_url}
+                                  {element.data?.text || element.data.url}
                                 </a>
                               )}
 
@@ -387,9 +399,12 @@ const CourseDetailPage = () => {
                                       {element.data?.description || element.homework_description}
                                     </Card.Text>
                                     {element.data?.deadline && (
-                                      <p className="text-muted">
+                                      <p className={`${new Date(element.data.deadline) < new Date() && !element.my_submission ? 'text-danger' : 'text-muted'}`}>
                                         <strong>Дедлайн:</strong>{' '}
                                         {new Date(element.data.deadline).toLocaleString('ru-RU')}
+                                        {new Date(element.data.deadline) < new Date() && !element.my_submission && (
+                                          <Badge bg="danger" className="ms-2">Просрочен</Badge>
+                                        )}
                                       </p>
                                     )}
                                     {element.my_submission ? (
@@ -478,12 +493,23 @@ const CourseDetailPage = () => {
                                         </Alert>
                                       )
                                     ) : course.is_subscribed ? (
-                                      <Button
-                                        variant="primary"
-                                        onClick={() => openHomeworkModal(element)}
-                                      >
-                                        Прикрепить работу
-                                      </Button>
+                                      element.data?.deadline && new Date(element.data.deadline) < new Date() ? (
+                                        <Alert variant="warning">
+                                          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                          <strong>Срок сдачи просрочен</strong>
+                                          <p className="mb-0 mt-2">
+                                            Дедлайн для этого задания истек {new Date(element.data.deadline).toLocaleString('ru-RU')}.
+                                            Отправка работы больше не доступна.
+                                          </p>
+                                        </Alert>
+                                      ) : (
+                                        <Button
+                                          variant="primary"
+                                          onClick={() => openHomeworkModal(element)}
+                                        >
+                                          Прикрепить работу
+                                        </Button>
+                                      )
                                     ) : (
                                       <small className="text-muted">
                                         Подпишитесь на курс, чтобы сдать задание
@@ -495,7 +521,9 @@ const CourseDetailPage = () => {
                                 </>
                               )}
                             </div>
-                          ))}
+                            );
+                          })
+                        )}
                       </Accordion.Body>
                     </Accordion.Item>
                     );

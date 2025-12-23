@@ -25,7 +25,10 @@ const Navbar = () => {
             <Nav.Link as={Link} to="/news">Новости</Nav.Link>
             <Nav.Link as={Link} to="/gallery">Галерея</Nav.Link>
             {isAuthenticated && (
-              <Nav.Link as={Link} to="/portal">Портал курсов</Nav.Link>
+              <>
+                <Nav.Link as={Link} to="/portal">Портал курсов</Nav.Link>
+                <Nav.Link as={Link} to="/portal/my-schedule">Мое расписание</Nav.Link>
+              </>
             )}
           </Nav>
           <Nav>

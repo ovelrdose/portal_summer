@@ -1,37 +1,131 @@
-1. Общее описание
-Необходимо реализовать возможность задания преподавателем даты и времени, начиная с которой студенты получают доступ к разделам и отдельным элементам курса. До наступления указанного времени студенты видят информационное сообщение вместо контента и могут ознакомиться с расписанием открытия материалов.
+[23/Dec/2025 23:15:47] "GET /api/courses/4/schedule/?include_homework=true HTTP/1.1" 200 244
+[23/Dec/2025 23:15:47] "GET /api/homework/section-stats/?course_id=4 HTTP/1.1" 200 530
+[23/Dec/2025 23:15:47] "GET /api/homework/section-stats/?course_id=4 HTTP/1.1" 200 530
+[MyScheduleView] User: admin@test.com, is_admin: True, is_teacher: True
+[MyScheduleView] User is admin/teacher, returning empty schedule
+[23/Dec/2025 23:15:50] "GET /api/my-schedule/ HTTP/1.1" 200 118
+[MyScheduleView] User: admin@test.com, is_admin: True, is_teacher: True
+[MyScheduleView] User is admin/teacher, returning empty schedule
+[23/Dec/2025 23:15:50] "GET /api/my-schedule/ HTTP/1.1" 200 118
+MyScheduleView] Processing course: test2
+[_get_locked_content_for_course] Course: test2, Sections count: 4
+[_get_locked_content_for_course] - Section: Виртуальная реальность, publish_datetime: None, now: 2025-12-23 16:16:26.913160+00:00
+[_get_locked_content_for_course]   Elements count: 1
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: раздел 2, publish_datetime: None, now: 2025-12-23 16:16:26.913160+00:00
+[_get_locked_content_for_course]   Elements count: 1
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: раздел 3, publish_datetime: None, now: 2025-12-23 16:16:26.913160+00:00
+[_get_locked_content_for_course]   Elements count: 1
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: 4, publish_datetime: 2025-12-31 12:23:00+00:00, now: 2025-12-23 16:16:26.913160+00:00
+[_get_locked_content_for_course]   -> Section is locked, adding to schedule
+[_get_locked_content_for_course]   Elements count: 2
+[_get_locked_content_for_course]   - Element: text, publish_datetime: None
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] Total locked items: 1
+[MyScheduleView] - Locked items: 1
+[_get_homework_schedule_for_course] Course: test2, User: ivan@mail.ru
+[_get_homework_schedule_for_course] Unlocked sections count: 3
+[_get_homework_schedule_for_course] - Section: Виртуальная реальность
+[_get_homework_schedule_for_course]   Homework elements: 1
+[_get_homework_schedule_for_course]   - HW Element: 19, data: {'description': '1312', 'deadline': '2025-12-20T20:10', 'allowedFormats': ['pdf'], 'maxFileSize': 10, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> Deadline: 2025-12-20 20:10:00+03:00
+[_get_homework_schedule_for_course]     -> Has submission: False, Status: None
+[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: True)
+[_get_homework_schedule_for_course] - Section: раздел 2
+[_get_homework_schedule_for_course]   Homework elements: 1
+[_get_homework_schedule_for_course]   - HW Element: 23, data: {'description': 'давай', 'deadline': '', 'allowedFormats': ['image'], 'maxFileSize': 10, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> No deadline, skipping
+[_get_homework_schedule_for_course] - Section: раздел 3
+[_get_homework_schedule_for_course]   Homework elements: 1
+[_get_homework_schedule_for_course]   - HW Element: 20, data: {'description': 'сделай', 'deadline': '2026-01-11T22:59', 'allowedFormats': ['doc', 'pdf', 'image', 'video', 'txt', 'zip'], 'maxFileSize': 100, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> Deadline: 2026-01-11 22:59:00+03:00
+[_get_homework_schedule_for_course]     -> Has submission: False, Status: None
+[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: False)
+[_get_homework_schedule_for_course] Total homework items: 2
+[MyScheduleView] - Homework items: 2
+[MyScheduleView] Total unlocks: 2, Total homeworks: 5
+[23/Dec/2025 23:16:26] "GET /api/my-schedule/ HTTP/1.1" 200 2344
+[MyScheduleView] User: ivan@mail.ru, is_admin: False, is_teacher: False
+[MyScheduleView] Subscribed courses count: 2
+[MyScheduleView] - Course: Математика (id=5)
+[MyScheduleView] - Course: test2 (id=4)
+[MyScheduleView] Processing course: Математика
+[_get_locked_content_for_course] Course: Математика, Sections count: 3
+[_get_locked_content_for_course] - Section: 1, publish_datetime: None, now: 2025-12-23 16:16:26.955290+00:00
+[_get_locked_content_for_course]   Elements count: 2
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: 2, publish_datetime: None, now: 2025-12-23 16:16:26.955290+00:00
+[_get_locked_content_for_course]   Elements count: 1
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: 3, publish_datetime: 2025-12-30 06:17:00+00:00, now: 2025-12-23 16:16:26.955290+00:00
+[_get_locked_content_for_course]   -> Section is locked, adding to schedule
+[_get_locked_content_for_course]   Elements count: 3
+[_get_locked_content_for_course]   - Element: text, publish_datetime: None
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course]   - Element: text, publish_datetime: None
+[_get_locked_content_for_course] Total locked items: 1
+[MyScheduleView] - Locked items: 1
+[_get_homework_schedule_for_course] Course: Математика, User: ivan@mail.ru
+[_get_homework_schedule_for_course] Unlocked sections count: 2
+[_get_homework_schedule_for_course] - Section: 1
+[_get_homework_schedule_for_course]   Homework elements: 2
+[_get_homework_schedule_for_course]   - HW Element: 22, data: {'description': 'Решите задачу', 'deadline': '2025-12-28T17:06', 'allowedFormats': ['zip', 'pdf', 'doc', 'txt', 'video', 'image'], 'maxFileSize': 10, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> Deadline: 2025-12-28 17:06:00+03:00
+[_get_homework_schedule_for_course]     -> Has submission: False, Status: None
+[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: False)
+[_get_homework_schedule_for_course]   - HW Element: 30, data: {'description': 'test', 'deadline': '2025-12-30T22:42', 'allowedFormats': ['pdf'], 'maxFileSize': 10, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> Deadline: 2025-12-30 22:42:00+03:00
+[_get_homework_schedule_for_course]     -> Has submission: False, Status: None
+[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: False)
+[_get_homework_schedule_for_course] - Section: 2
+[_get_homework_schedule_for_course]   Homework elements: 1
+[_get_homework_schedule_for_course]   - HW Element: 24, data: {'description': 'привет', 'deadline': '2026-01-03T12:28', 'allowedFormats': ['doc', 'pdf', 'image'], 'maxFileSize': 10, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> Deadline: 2026-01-03 12:28:00+03:00
+[_get_homework_schedule_for_course]     -> Has submission: False, Status: None
+[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: False)
+[_get_homework_schedule_for_course] Total homework items: 3
+[MyScheduleView] - Homework items: 3
+[MyScheduleView] Processing course: test2
+[_get_locked_content_for_course] Course: test2, Sections count: 4
+[_get_locked_content_for_course] - Section: Виртуальная реальность, publish_datetime: None, now: 2025-12-23 16:16:26.955290+00:00
+[_get_locked_content_for_course]   Elements count: 1
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: раздел 2, publish_datetime: None, now: 2025-12-23 16:16:26.955290+00:00
+[_get_locked_content_for_course]   Elements count: 1
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: раздел 3, publish_datetime: None, now: 2025-12-23 16:16:26.955290+00:00
+[_get_locked_content_for_course]   Elements count: 1
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] - Section: 4, publish_datetime: 2025-12-31 12:23:00+00:00, now: 2025-12-23 16:16:26.955290+00:00
+[_get_locked_content_for_course]   -> Section is locked, adding to schedule
+[_get_locked_content_for_course]   Elements count: 2
+[_get_locked_content_for_course]   - Element: text, publish_datetime: None
+[_get_locked_content_for_course]   - Element: homework, publish_datetime: None
+[_get_locked_content_for_course] Total locked items: 1
+[MyScheduleView] - Locked items: 1
+[_get_homework_schedule_for_course] Course: test2, User: ivan@mail.ru
+[_get_homework_schedule_for_course] Unlocked sections count: 3
+[_get_homework_schedule_for_course] - Section: Виртуальная реальность
+[_get_homework_schedule_for_course]   Homework elements: 1
+[_get_homework_schedule_for_course]   - HW Element: 19, data: {'description': '1312', 'deadline': '2025-12-20T20:10', 'allowedFormats': ['pdf'], 'maxFileSize': 10, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> Deadline: 2025-12-20 20:10:00+03:00
+[_get_homework_schedule_for_course]     -> Has submission: False, Status: None
+[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: True)
+[_get_homework_schedule_for_course] - Section: раздел 2
+[_get_homework_schedule_for_course]   Homework elements: 1
+[_get_homework_schedule_for_course]   - HW Element: 23, data: {'description': 'давай', 'deadline': '', 'allowedFormats': ['image'], 'maxFileSize': 10, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> No deadline, skipping
+[_get_homework_schedule_for_course] - Section: раздел 3
+[_get_homework_schedule_for_course]   Homework elements: 1
+[_get_homework_schedule_for_course]   - HW Element: 20, data: {'description': 'сделай', 'deadline': '2026-01-11T22:59', 'allowedFormats': ['doc', 'pdf', 'image', 'video', 'txt', 'zip'], 'maxFileSize': 100, 'version': 1, 'type': 'homework'}
+[_get_homework_schedule_for_course]     -> Deadline: 2026-01-11 22:59:00+03:00
+[_get_homework_schedule_for_course]     -> Has submission: False, Status: None
+[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: False)
+[_get_homework_schedule_for_course] Total homework items: 2
+[MyScheduleView] - Homework items: 2
+[MyScheduleView] Total unlocks: 2, Total homeworks: 5
+[23/Dec/2025 23:16:26] "GET /api/my-schedule/ HTTP/1.1" 200 2344
 
-2. Требования к функционалу
-2.1. Административная часть (для преподавателя)
-При создании или редактировании элемента курса (раздела или конкретного элемента, например, урока, задания, видео и т.п.) должна быть доступна опциональная настройка:
-Поле «Дата и время открытия» — тип: datetime (с возможностью указания даты и времени в формате ДД.ММ.ГГГГ ЧЧ:ММ).
-Если поле не заполнено — элемент доступен сразу после публикации.
-Если поле заполнено — элемент отображается студентам только после наступления указанной даты и времени.
-2.2. Студенческая часть (студент)
-Если студент переходит к элементу курса до наступления даты/времени открытия, вместо содержимого отображается:
-Информационное сообщение:
-«Этот элемент станет доступен ДД.ММ.ГГГГ в ЧЧ:ММ»
-(где ДД.ММ.ГГГГ ЧЧ:ММ — значение, указанное преподавателем).
-После наступления указанного времени элемент отображается в обычном режиме.
-2.3. Расписание открытия элементов курса
-На странице курса (внутри интерфейса студента), ниже кнопок управления курсом (например, «Отписаться от курса»), отображается блок «Расписание открытия материалов».
-В этом блоке отображается таблица или список со следующими колонками:
-Название курса (если отображается несколько курсов — иначе можно опустить);
-Раздел / Элемент курса (название);
-Дата и время открытия (в формате ДД.ММ.ГГГГ ЧЧ:ММ).
-В список попадают только те элементы, у которых задана дата открытия и которые ещё не стали доступны.
-После того как элемент становится доступен — он удаляется из расписания.
-3. Технические требования
-Все даты и времена хранятся в базе данных в UTC.
-Отображение даты и времени студенту — в его локальном часовом поясе (если система поддерживает локализацию; иначе — в часовом поясе сервера с указанием на это).
-При рендеринге страницы курса на стороне клиента (React) или сервера (Django) должна производиться проверка текущего времени относительно publish_datetime у каждого элемента.
-Поле publish_datetime должно быть добавлено в соответствующие модели
-API должен возвращать флаг is_locked и, при необходимости, unlock_datetime для каждого элемента курса.
-Блок расписания должен обновляться автоматически (без перезагрузки страницы) при изменении состояния элементов
-Необходимо предусмотреть защиту от обхода ограничений на клиенте — проверка доступности элемента обязательна на сервере при любом запросе контента.
-5. Пример UX-флоу
-Преподаватель создаёт урок → указывает дату открытия «01.02.2025 09:00».
-Студент заходит в курс 30.01.2025 → вместо урока видит сообщение: «Этот элемент станет доступен 01.02.2025 в 09:00».
-В блоке расписания у студента отображается строка:
-Урок 5: Введение в DevOps | 01.02.2025 09:00.
-После 01.02.2025 09:00 урок становится доступен, а запись исчезает из расписания.

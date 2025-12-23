@@ -204,6 +204,40 @@ class HomeworkSubmissionSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, attrs):
+        """Валидация при создании submission"""
+        # Проверяем дедлайн только при создании (не при обновлении)
+        if not self.instance:
+            element = attrs.get('element')
+            if element and element.content_type == 'homework':
+                deadline = element.data.get('deadline')
+                if deadline:
+                    # Парсим дедлайн и проверяем
+                    from datetime import datetime
+                    try:
+                        if isinstance(deadline, str):
+                            deadline_dt = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
+                        else:
+                            deadline_dt = deadline
+
+                        # Сравниваем с текущим временем
+                        if deadline_dt.tzinfo:
+                            now = timezone.now()
+                        else:
+                            from datetime import datetime as dt
+                            now = dt.now()
+
+                        if now > deadline_dt:
+                            raise serializers.ValidationError(
+                                "Срок сдачи домашнего задания истек. Дедлайн был: " +
+                                deadline_dt.strftime('%d.%m.%Y %H:%M')
+                            )
+                    except (ValueError, AttributeError):
+                        # Если не удалось распарсить дату, пропускаем проверку
+                        pass
+
+        return attrs
+
 
 class HomeworkReviewHistorySerializer(serializers.ModelSerializer):
     """Сериализатор истории изменений оценок"""
@@ -246,6 +280,23 @@ class ContentElementSerializer(serializers.ModelSerializer):
         if obj.is_locked_for_user(user):
             return obj.publish_datetime
         return None
+
+    def to_representation(self, instance):
+        """
+        Скрывает контент для заблокированных элементов.
+
+        Для студентов заблокированные элементы возвращаются с пустым data.
+        Админы и преподаватели видят полный контент.
+        """
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+
+        # Если элемент заблокирован для студента - скрываем контент
+        if instance.is_locked_for_user(user):
+            representation['data'] = {}
+
+        return representation
 
     def validate(self, attrs):
         """Валидируем данные блока согласно его типу"""
@@ -530,9 +581,17 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
 class CourseScheduleItemSerializer(serializers.Serializer):
     """Сериализатор для элементов расписания курса"""
-    item_type = serializers.CharField()  # 'section' or 'element'
+    item_type = serializers.CharField()  # 'section', 'element', or 'homework'
     item_id = serializers.IntegerField()
+    course_id = serializers.IntegerField(required=False)  # Для "Мое расписание"
+    course_title = serializers.CharField(required=False)
+    section_id = serializers.IntegerField()
     section_title = serializers.CharField()
     element_title = serializers.CharField(allow_null=True, required=False)
     element_type = serializers.CharField(allow_null=True, required=False)
-    unlock_datetime = serializers.DateTimeField()
+    unlock_datetime = serializers.DateTimeField(allow_null=True, required=False)
+    # Новые поля для домашних заданий:
+    deadline = serializers.DateTimeField(allow_null=True, required=False)
+    is_overdue = serializers.BooleanField(required=False)
+    has_submission = serializers.BooleanField(required=False)
+    submission_status = serializers.CharField(allow_null=True, required=False)

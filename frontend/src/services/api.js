@@ -168,7 +168,13 @@ export const coursesAPI = {
   reorderElements: (items) => api.post('/elements/reorder/', { items }),
 
   // Course Schedule
-  getCourseSchedule: (courseId) => api.get(`/courses/${courseId}/schedule/`),
+  getCourseSchedule: (courseId, includeHomework = false) => {
+    const params = includeHomework ? { include_homework: 'true' } : {};
+    return api.get(`/courses/${courseId}/schedule/`, { params });
+  },
+
+  // My Schedule (all courses)
+  getMySchedule: () => api.get('/my-schedule/'),
 };
 
 // Stats API

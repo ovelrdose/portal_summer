@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
@@ -33,6 +34,7 @@ from .serializers import (
 )
 from apps.users.permissions import IsAdmin, IsTeacher, IsOwnerOrAdmin
 from apps.users.serializers import UserPublicSerializer
+from .permissions import IsAccessibleOrAdmin, IsCourseSubscriberOrAdmin
 
 
 class IsCourseOwnerOrAdmin(permissions.BasePermission):
@@ -108,6 +110,167 @@ class IsCourseOwnerForHomework(permissions.BasePermission):
         # obj - это HomeworkSubmission
         # element.section.course.creator
         return obj.element.section.course.creator == request.user
+
+
+def _get_homework_schedule_for_course(course, user, now):
+    """
+    Получает список ДЗ с дедлайнами для конкретного курса.
+
+    Возвращает только ДЗ:
+    - С установленным дедлайном
+    - Без ответа от пользователя ИЛИ ответ требует доработки
+    - Из опубликованных и разблокированных разделов/элементов
+    """
+    from datetime import datetime
+    homework_items = []
+
+    print(f"[_get_homework_schedule_for_course] Course: {course.title}, User: {user.email}")
+
+    # Получаем все разделы курса (опубликованные и разблокированные)
+    sections = course.sections.filter(
+        is_published=True
+    ).filter(
+        Q(publish_datetime__isnull=True) | Q(publish_datetime__lte=now)
+    ).prefetch_related('elements')
+
+    print(f"[_get_homework_schedule_for_course] Unlocked sections count: {sections.count()}")
+
+    for section in sections:
+        print(f"[_get_homework_schedule_for_course] - Section: {section.title}")
+        # Получаем все элементы типа homework с дедлайном
+        homework_elements = section.elements.filter(
+            content_type=ContentElement.ContentType.HOMEWORK,
+            is_published=True
+        ).filter(
+            Q(publish_datetime__isnull=True) | Q(publish_datetime__lte=now)
+        )
+
+        print(f"[_get_homework_schedule_for_course]   Homework elements: {homework_elements.count()}")
+
+        for hw_element in homework_elements:
+            print(f"[_get_homework_schedule_for_course]   - HW Element: {hw_element.title or hw_element.id}, data: {hw_element.data}")
+            deadline = hw_element.data.get('deadline') if hw_element.data else None
+
+            if not deadline:
+                print(f"[_get_homework_schedule_for_course]     -> No deadline, skipping")
+                continue  # Пропускаем ДЗ без дедлайна
+
+            # Парсим дедлайн
+            try:
+                if isinstance(deadline, str):
+                    deadline_dt = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
+                else:
+                    deadline_dt = deadline
+
+                # Делаем aware если нужно
+                if timezone.is_naive(deadline_dt):
+                    deadline_dt = timezone.make_aware(deadline_dt)
+
+                print(f"[_get_homework_schedule_for_course]     -> Deadline: {deadline_dt}")
+            except (ValueError, AttributeError, TypeError) as e:
+                print(f"[_get_homework_schedule_for_course]     -> Failed to parse deadline: {e}")
+                continue  # Пропускаем если не удалось распарсить
+
+            # Проверяем наличие ответа
+            submission = HomeworkSubmission.objects.filter(
+                element=hw_element,
+                user=user
+            ).first()
+
+            has_submission = submission is not None
+            submission_status = submission.status if submission else None
+
+            print(f"[_get_homework_schedule_for_course]     -> Has submission: {has_submission}, Status: {submission_status}")
+
+            # Включаем в расписание если:
+            # 1. Нет ответа
+            # 2. ИЛИ ответ требует доработки (revision_requested)
+            if not has_submission or submission_status == HomeworkSubmission.Status.REVISION_REQUESTED:
+                is_overdue = deadline_dt < now
+
+                print(f"[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: {is_overdue})")
+
+                homework_items.append({
+                    'item_type': 'homework',
+                    'item_id': hw_element.id,
+                    'section_id': section.id,
+                    'section_title': section.title,
+                    'element_title': hw_element.title or 'Домашнее задание',
+                    'element_type': 'Форма для ДЗ',
+                    'unlock_datetime': None,
+                    'deadline': deadline_dt,
+                    'is_overdue': is_overdue,
+                    'has_submission': has_submission,
+                    'submission_status': submission_status,
+                })
+            else:
+                print(f"[_get_homework_schedule_for_course]     -> Not adding (has submission with status: {submission_status})")
+
+    print(f"[_get_homework_schedule_for_course] Total homework items: {len(homework_items)}")
+    return homework_items
+
+
+def _get_locked_content_for_course(course, user, now):
+    """
+    Получает заблокированные материалы для курса.
+
+    Возвращает разделы и элементы с датами открытия в будущем.
+    Добавляет информацию о курсе для использования в "Мое расписание".
+    """
+    locked_items = []
+
+    # Получаем все разделы курса
+    sections = course.sections.filter(is_published=True)
+    print(f"[_get_locked_content_for_course] Course: {course.title}, Sections count: {sections.count()}")
+
+    for section in sections:
+        print(f"[_get_locked_content_for_course] - Section: {section.title}, publish_datetime: {section.publish_datetime}, now: {now}")
+        # Если раздел заблокирован
+        if section.publish_datetime and section.publish_datetime > now:
+            print(f"[_get_locked_content_for_course]   -> Section is locked, adding to schedule")
+            locked_items.append({
+                'item_type': 'section',
+                'item_id': section.id,
+                'course_id': course.id,
+                'course_title': course.title,
+                'section_id': section.id,
+                'section_title': section.title,
+                'element_title': None,
+                'element_type': None,
+                'unlock_datetime': section.publish_datetime,
+                'deadline': None,
+                'is_overdue': False,
+                'has_submission': False,
+                'submission_status': None,
+            })
+
+        # Получаем элементы раздела
+        elements = section.elements.filter(is_published=True)
+        print(f"[_get_locked_content_for_course]   Elements count: {elements.count()}")
+
+        for element in elements:
+            print(f"[_get_locked_content_for_course]   - Element: {element.title or element.content_type}, publish_datetime: {element.publish_datetime}")
+            # Если элемент заблокирован
+            if element.publish_datetime and element.publish_datetime > now:
+                print(f"[_get_locked_content_for_course]     -> Element is locked, adding to schedule")
+                locked_items.append({
+                    'item_type': 'element',
+                    'item_id': element.id,
+                    'course_id': course.id,
+                    'course_title': course.title,
+                    'section_id': section.id,
+                    'section_title': section.title,
+                    'element_title': element.title or element.get_content_type_display(),
+                    'element_type': element.get_content_type_display(),
+                    'unlock_datetime': element.publish_datetime,
+                    'deadline': None,
+                    'is_overdue': False,
+                    'has_submission': False,
+                    'submission_status': None,
+                })
+
+    print(f"[_get_locked_content_for_course] Total locked items: {len(locked_items)}")
+    return locked_items
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -247,11 +410,15 @@ class CourseViewSet(viewsets.ModelViewSet):
         course.save()
         return Response({'status': 'Курс снят с публикации'})
 
+
     @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def schedule(self, request, pk=None):
         """
         Возвращает расписание открытия материалов курса.
         Показывает только заблокированные элементы с датами открытия.
+
+        Query params:
+            include_homework (bool): Включить ДЗ с дедлайнами
         """
         course = self.get_object()
         user = request.user
@@ -267,9 +434,11 @@ class CourseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        include_homework = request.query_params.get('include_homework', 'false').lower() == 'true'
+
         schedule_items = []
 
-        # Получаем все разделы курса
+        # ЧАСТЬ 1: Получаем заблокированные материалы
         sections = course.sections.filter(is_published=True).select_related('course')
 
         for section in sections:
@@ -280,10 +449,15 @@ class CourseViewSet(viewsets.ModelViewSet):
                 schedule_items.append({
                     'item_type': 'section',
                     'item_id': section.id,
+                    'section_id': section.id,
                     'section_title': section.title,
                     'element_title': None,
                     'element_type': None,
-                    'unlock_datetime': section.publish_datetime
+                    'unlock_datetime': section.publish_datetime,
+                    'deadline': None,
+                    'is_overdue': False,
+                    'has_submission': False,
+                    'submission_status': None,
                 })
 
             # Получаем элементы раздела
@@ -295,14 +469,25 @@ class CourseViewSet(viewsets.ModelViewSet):
                     schedule_items.append({
                         'item_type': 'element',
                         'item_id': element.id,
+                        'section_id': section.id,
                         'section_title': section.title,
                         'element_title': element.title or element.get_content_type_display(),
                         'element_type': element.get_content_type_display(),
-                        'unlock_datetime': element.publish_datetime
+                        'unlock_datetime': element.publish_datetime,
+                        'deadline': None,
+                        'is_overdue': False,
+                        'has_submission': False,
+                        'submission_status': None,
                     })
 
-        # Сортируем по дате открытия
-        schedule_items.sort(key=lambda x: x['unlock_datetime'])
+        # ЧАСТЬ 2: Добавляем домашние задания (если запрошено)
+        # Админы/преподаватели тоже могут быть подписаны на курсы как студенты
+        if include_homework:
+            homework_items = _get_homework_schedule_for_course(course, user, now)
+            schedule_items.extend(homework_items)
+
+        # Сортируем по дате (unlock_datetime для материалов, deadline для ДЗ)
+        schedule_items.sort(key=lambda x: x.get('unlock_datetime') or x.get('deadline') or now)
 
         serializer = CourseScheduleItemSerializer(schedule_items, many=True)
         return Response(serializer.data)
@@ -314,10 +499,44 @@ class SectionViewSet(viewsets.ModelViewSet):
     serializer_class = SectionSerializer
 
     def get_queryset(self):
+        """
+        Возвращает queryset с фильтрацией заблокированных разделов для студентов.
+
+        Логика:
+        - Админы и преподаватели видят все разделы
+        - Студенты видят только разблокированные разделы
+        - Владелец курса видит все разделы своего курса
+
+        Фильтрация по query параметрам:
+        - course: ID курса для фильтрации разделов
+        """
+        user = self.request.user
+        now = timezone.now()
+
+        # Базовый queryset с фильтрацией по курсу
         course_id = self.request.query_params.get('course')
-        queryset = Section.objects.all()
+        queryset = Section.objects.select_related('course').all()
+
         if course_id:
             queryset = queryset.filter(course_id=course_id)
+
+        # Для неаутентифицированных пользователей - возвращаем пустой queryset
+        if not user.is_authenticated:
+            return queryset.none()
+
+        # Админы и преподаватели видят все разделы
+        if user.is_admin or user.is_teacher:
+            return queryset
+
+        # Для студентов фильтруем заблокированные разделы
+        # Показываем только разделы, которые:
+        # 1. Опубликованы (is_published=True)
+        # 2. НЕ заблокированы по времени (publish_datetime <= now ИЛИ publish_datetime IS NULL)
+        queryset = queryset.filter(is_published=True)
+        queryset = queryset.filter(
+            Q(publish_datetime__isnull=True) | Q(publish_datetime__lte=now)
+        )
+
         return queryset
 
     def get_serializer_class(self):
@@ -327,7 +546,8 @@ class SectionViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
+            # Для чтения разделов требуется подписка на курс
+            return [IsCourseSubscriberOrAdmin()]
         return [IsCourseOwnerOrAdmin()]
 
     def retrieve(self, request, *args, **kwargs):
@@ -356,10 +576,52 @@ class ContentElementViewSet(viewsets.ModelViewSet):
     serializer_class = ContentElementSerializer
 
     def get_queryset(self):
+        """
+        Возвращает queryset с фильтрацией заблокированных элементов для студентов.
+
+        Логика:
+        - Админы и преподаватели видят все элементы
+        - Студенты видят только разблокированные элементы доступных разделов
+        - Владелец курса видит все элементы своего курса
+
+        Фильтрация по query параметрам:
+        - section: ID раздела для фильтрации элементов
+        """
+        user = self.request.user
+        now = timezone.now()
+
+        # Базовый queryset с оптимизацией
         section_id = self.request.query_params.get('section')
-        queryset = ContentElement.objects.all()
+        queryset = ContentElement.objects.select_related('section', 'section__course').all()
+
         if section_id:
             queryset = queryset.filter(section_id=section_id)
+
+        # Для неаутентифицированных пользователей - возвращаем пустой queryset
+        if not user.is_authenticated:
+            return queryset.none()
+
+        # Админы и преподаватели видят все элементы
+        if user.is_admin or user.is_teacher:
+            return queryset
+
+        # Для студентов фильтруем заблокированные элементы
+        # Показываем только элементы, которые:
+        # 1. Опубликованы (is_published=True)
+        # 2. НЕ заблокированы по времени (publish_datetime <= now ИЛИ publish_datetime IS NULL)
+        # 3. Принадлежат разблокированным разделам
+        queryset = queryset.filter(is_published=True)
+        queryset = queryset.filter(
+            Q(publish_datetime__isnull=True) | Q(publish_datetime__lte=now)
+        )
+
+        # Фильтруем по разблокированным разделам
+        queryset = queryset.filter(
+            section__is_published=True
+        ).filter(
+            Q(section__publish_datetime__isnull=True) | Q(section__publish_datetime__lte=now)
+        )
+
         return queryset
 
     def get_serializer_class(self):
@@ -369,7 +631,8 @@ class ContentElementViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
+            # Для чтения элементов требуется подписка на курс
+            return [IsCourseSubscriberOrAdmin()]
         if self.action == 'upload_image':
             return [IsCourseOwnerOrAdmin()]
         return [IsCourseOwnerOrAdmin()]
@@ -841,3 +1104,67 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
             context={'request': request}
         )
         return Response(serializer.data)
+
+
+class MyScheduleView(APIView):
+    """
+    Объединенное расписание пользователя по всем курсам.
+
+    Возвращает:
+    {
+        "unlocks": [...],  # Запланированные открытия материалов
+        "homeworks": [...]  # Домашние задания с дедлайнами
+    }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        now = timezone.now()
+
+        print(f"[MyScheduleView] User: {user.email}, is_admin: {user.is_admin}, is_teacher: {user.is_teacher}")
+
+        # Получаем все курсы, на которые подписан пользователь
+        subscribed_courses = Course.objects.filter(
+            subscribers=user,
+            is_published=True
+        ).prefetch_related('sections', 'sections__elements')
+
+        print(f"[MyScheduleView] Subscribed courses count: {subscribed_courses.count()}")
+        for course in subscribed_courses:
+            print(f"[MyScheduleView] - Course: {course.title} (id={course.id})")
+
+        unlocks = []
+        homeworks = []
+
+        for course in subscribed_courses:
+            print(f"[MyScheduleView] Processing course: {course.title}")
+
+            # ЧАСТЬ 1: Собираем заблокированные материалы
+            unlock_items = _get_locked_content_for_course(course, user, now)
+            print(f"[MyScheduleView] - Locked items: {len(unlock_items)}")
+            unlocks.extend(unlock_items)
+
+            # ЧАСТЬ 2: Собираем ДЗ с дедлайнами
+            homework_items = _get_homework_schedule_for_course(course, user, now)
+            print(f"[MyScheduleView] - Homework items: {len(homework_items)}")
+            # Добавляем информацию о курсе
+            for item in homework_items:
+                item['course_id'] = course.id
+                item['course_title'] = course.title
+            homeworks.extend(homework_items)
+
+        print(f"[MyScheduleView] Total unlocks: {len(unlocks)}, Total homeworks: {len(homeworks)}")
+
+        # Сортировка
+        unlocks.sort(key=lambda x: x['unlock_datetime'])
+        homeworks.sort(key=lambda x: (
+            not x['is_overdue'],  # Просроченные в начале (False < True)
+            x['deadline']
+        ))
+
+        from .serializers import CourseScheduleItemSerializer
+        return Response({
+            'unlocks': CourseScheduleItemSerializer(unlocks, many=True).data,
+            'homeworks': CourseScheduleItemSerializer(homeworks, many=True).data,
+        })

@@ -11,4 +11,5 @@ router.register(r'homework', views.HomeworkSubmissionViewSet, basename='homework
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('my-schedule/', views.MyScheduleView.as_view(), name='my-schedule'),
 ]

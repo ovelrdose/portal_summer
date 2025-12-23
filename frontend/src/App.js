@@ -23,6 +23,7 @@ import PortalPage from './pages/portal/PortalPage';
 import CoursesPage from './pages/portal/CoursesPage';
 import CourseDetailPage from './pages/portal/CourseDetailPage';
 import ProfilePage from './pages/portal/ProfilePage';
+import MySchedulePage from './pages/portal/MySchedulePage';
 
 // Admin/Teacher pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -113,6 +114,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portal/my-schedule"
+            element={
+              <ProtectedRoute>
+                <MySchedulePage />
               </ProtectedRoute>
             }
           />
