@@ -297,18 +297,20 @@ class CourseViewSet(viewsets.ModelViewSet):
         return CourseDetailSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'latest']:
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [IsTeacher()]
-        if self.action in ['subscribe', 'unsubscribe']:
+        if self.action in ['subscribe', 'unsubscribe', 'my_courses', 'schedule']:
             return [permissions.IsAuthenticated()]
+        if self.action in ['created_courses', 'drafts']:
+            return [IsTeacher()]
         return [IsCourseOwnerOrAdmin()]
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['post'])
     def subscribe(self, request, pk=None):
         """Подписаться на курс"""
         course = self.get_object()
@@ -320,7 +322,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response({'status': 'Вы подписались на курс'})
         return Response({'status': 'Вы уже подписаны на этот курс'})
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['post'])
     def unsubscribe(self, request, pk=None):
         """Отписаться от курса"""
         course = self.get_object()
@@ -361,8 +363,6 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def my_courses(self, request):
         """Курсы, на которые подписан текущий пользователь"""
-        if not request.user.is_authenticated:
-            return Response([])
         subscriptions = Subscription.objects.filter(user=request.user)
         serializer = SubscriptionSerializer(
             subscriptions,
@@ -382,14 +382,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[IsTeacher])
+    @action(detail=False, methods=['get'])
     def created_courses(self, request):
         """Курсы, созданные текущим пользователем"""
         courses = Course.objects.filter(creator=request.user)
         serializer = CourseListSerializer(courses, many=True, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[IsTeacher])
+    @action(detail=False, methods=['get'])
     def drafts(self, request):
         """Черновики курсов текущего пользователя"""
         drafts = Course.objects.filter(creator=request.user, is_published=False)
@@ -411,7 +411,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         return Response({'status': 'Курс снят с публикации'})
 
 
-    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['get'])
     def schedule(self, request, pk=None):
         """
         Возвращает расписание открытия материалов курса.
@@ -865,14 +865,18 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'create']:
+        if self.action in ['list', 'retrieve', 'create', 'resubmit', 'review_history']:
             return [permissions.IsAuthenticated()]
+        if self.action == 'review':
+            return [IsTeacher(), IsCourseOwnerForHomework()]
+        if self.action == 'section_stats':
+            return [IsTeacher()]
         return [IsCourseOwnerOrAdmin()]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsTeacher, IsCourseOwnerForHomework])
+    @action(detail=True, methods=['post'])
     def review(self, request, pk=None):
         """
         Проверить домашнее задание и оставить оценку с комментарием,
@@ -935,7 +939,7 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(submission)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['patch'])
     def resubmit(self, request, pk=None):
         """
         Повторная отправка домашнего задания после возврата на доработку.
@@ -994,7 +998,7 @@ class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(submission)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='section-stats', permission_classes=[IsTeacher])
+    @action(detail=False, methods=['get'], url_path='section-stats')
     def section_stats(self, request):
         """
         Статистика домашних заданий по разделам курса.
