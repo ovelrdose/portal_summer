@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import Album, Photo
 from .serializers import (
@@ -14,6 +14,8 @@ from apps.users.permissions import IsAdmin
 
 
 class AlbumViewSet(viewsets.ModelViewSet):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     def get_queryset(self):
         if self.request.user.is_authenticated and self.request.user.is_admin:
             return Album.objects.all()
@@ -55,7 +57,7 @@ class AlbumViewSet(viewsets.ModelViewSet):
 
 class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         album_id = self.request.query_params.get('album')

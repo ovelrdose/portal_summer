@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import News, Tag
 from apps.courses.serializers import BlockDataValidator
 
@@ -12,14 +13,24 @@ class TagSerializer(serializers.ModelSerializer):
 class NewsListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка новостей (карточки)"""
     tags = TagSerializer(many=True, read_only=True)
+    image = serializers.SerializerMethodField()
     image_url = serializers.ReadOnlyField()
 
     class Meta:
         model = News
         fields = [
             'id', 'title', 'short_description', 'image', 'image_url',
-            'tags', 'published_at'
+            'tags', 'is_published', 'published_at'
         ]
+
+    def get_image(self, obj):
+        """Возвращает абсолютный URL изображения"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 
 class NewsDetailSerializer(serializers.ModelSerializer):
@@ -86,3 +97,58 @@ class NewsAdminSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"Блок {i} ({block_type}): {str(e)}")
 
         return value
+
+    def create(self, validated_data: dict) -> News:
+        """
+        Создание новости с автоматической установкой published_at.
+
+        Если новость создается с is_published=True, автоматически устанавливает
+        published_at в текущее время.
+        """
+        tags_data = validated_data.pop('tags', [])
+
+        # Устанавливаем published_at, если новость публикуется
+        if validated_data.get('is_published', False) and not validated_data.get('published_at'):
+            validated_data['published_at'] = timezone.now()
+
+        news = News.objects.create(**validated_data)
+
+        if tags_data:
+            news.tags.set(tags_data)
+
+        return news
+
+    def update(self, instance: News, validated_data: dict) -> News:
+        """
+        Обновление новости с автоматической установкой published_at.
+
+        Если is_published меняется с False на True, автоматически устанавливает
+        published_at в текущее время.
+        Если is_published меняется с True на False, обнуляет published_at.
+        """
+        tags_data = validated_data.pop('tags', None)
+
+        # Проверяем, меняется ли статус публикации
+        old_is_published = instance.is_published
+        new_is_published = validated_data.get('is_published', old_is_published)
+
+        # Если публикуем новость (False -> True), устанавливаем published_at
+        if not old_is_published and new_is_published:
+            if 'published_at' not in validated_data or validated_data['published_at'] is None:
+                validated_data['published_at'] = timezone.now()
+
+        # Если снимаем с публикации (True -> False), обнуляем published_at
+        elif old_is_published and not new_is_published:
+            validated_data['published_at'] = None
+
+        # Обновляем поля новости
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        # Обновляем теги, если они были переданы
+        if tags_data is not None:
+            instance.tags.set(tags_data)
+
+        return instance

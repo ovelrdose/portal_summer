@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.core.files.storage import default_storage
@@ -20,6 +20,7 @@ from apps.users.permissions import IsAdmin
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None  # Отключаем пагинацию для тегов
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -28,9 +29,10 @@ class TagViewSet(viewsets.ModelViewSet):
 
 
 class NewsViewSet(viewsets.ModelViewSet):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['tags', 'is_published']
-    search_fields = ['title', 'short_description']
+    search_fields = ['title', 'short_description', 'tags__name']
     ordering_fields = ['published_at', 'created_at']
 
     def get_queryset(self):
@@ -61,17 +63,18 @@ class NewsViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def unpublish(self, request, pk=None):
-        """Снятие с публикации"""
+        """Вернуть новость в черновик"""
         news = self.get_object()
         news.is_published = False
+        news.published_at = None
         news.save()
-        return Response({'status': 'Новость снята с публикации'})
+        return Response({'status': 'Новость возвращена в черновик'})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny()])
     def latest(self, request):
         """Последние новости для главной страницы"""
-        news = self.get_queryset()[:5]
-        serializer = NewsListSerializer(news, many=True)
+        news = self.get_queryset().filter(is_published=True)[:5]
+        serializer = NewsListSerializer(news, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(

@@ -2,7 +2,7 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -274,6 +274,7 @@ def _get_locked_content_for_course(course, user, now):
 
 
 class CourseViewSet(viewsets.ModelViewSet):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'short_description']
     ordering_fields = ['created_at', 'title']
@@ -809,6 +810,7 @@ class ContentElementViewSet(viewsets.ModelViewSet):
 
 class HomeworkSubmissionViewSet(viewsets.ModelViewSet):
     serializer_class = HomeworkSubmissionSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         """
