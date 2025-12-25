@@ -29,6 +29,7 @@ import MySchedulePage from './pages/portal/MySchedulePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import CourseEditor from './pages/admin/CourseEditor';
 import HomeworkReviewPage from './pages/admin/HomeworkReviewPage';
+import NewsEditor from './pages/admin/NewsEditor';
 
 // Protected Route component
 const ProtectedRoute = ({ children, requireAdmin = false, requireTeacher = false }) => {
@@ -156,6 +157,22 @@ function App() {
             element={
               <ProtectedRoute requireTeacher>
                 <HomeworkReviewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/news/new"
+            element={
+              <ProtectedRoute requireAdmin>
+                <NewsEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/news/:id/edit"
+            element={
+              <ProtectedRoute requireAdmin>
+                <NewsEditor />
               </ProtectedRoute>
             }
           />

@@ -5,15 +5,17 @@ from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
+    is_admin = serializers.ReadOnlyField()
+    is_teacher = serializers.ReadOnlyField()
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'patronymic',
-            'full_name', 'role', 'grade', 'country', 'city', 'photo',
-            'created_at'
+            'full_name', 'role', 'is_admin', 'is_teacher', 'is_superuser',
+            'grade', 'country', 'city', 'photo', 'created_at'
         ]
-        read_only_fields = ['id', 'email', 'role', 'created_at']
+        read_only_fields = ['id', 'email', 'role', 'is_admin', 'is_teacher', 'is_superuser', 'created_at']
 
 
 class UserPublicSerializer(serializers.ModelSerializer):

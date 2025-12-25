@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { coursesAPI } from '../../../services/api';
 
-const ImageBlock = ({ data, onChange, sectionId }) => {
+const ImageBlock = ({ data, onChange, sectionId, uploadImage }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -26,7 +26,8 @@ const ImageBlock = ({ data, onChange, sectionId }) => {
     setUploading(true);
 
     try {
-      const response = await coursesAPI.uploadImage(file, sectionId);
+      const uploadFn = uploadImage || ((f, s) => coursesAPI.uploadImage(f, s));
+      const response = await uploadFn(file, sectionId);
       onChange({
         ...data,
         url: response.data.url,

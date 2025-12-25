@@ -18,7 +18,13 @@ class Tag(models.Model):
 class News(models.Model):
     title = models.CharField('Заголовок', max_length=255)
     short_description = models.TextField('Краткое описание', max_length=500)
-    content = CKEditor5Field('Полное описание', config_name='default')
+    content = CKEditor5Field('Полное описание', config_name='default', blank=True, null=True)
+    content_blocks = models.JSONField(
+        'Блоки контента',
+        default=list,
+        blank=True,
+        help_text='Структурированный контент в формате блоков'
+    )
 
     image = models.ImageField(
         'Изображение',
@@ -53,3 +59,8 @@ class News(models.Model):
         if self.image:
             return self.image.url
         return '/static/images/default-news.jpg'
+
+    @property
+    def uses_block_editor(self):
+        """Проверяет, использует ли новость блочный редактор"""
+        return bool(self.content_blocks)

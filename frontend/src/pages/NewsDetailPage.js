@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Container, Spinner, Badge, Button } from 'react-bootstrap';
 import { newsAPI } from '../services/api';
+import BlockPreview from '../components/BlockEditor/preview/BlockPreview';
+import { useAuth } from '../contexts/AuthContext';
 
 const NewsDetailPage = () => {
   const { id } = useParams();
+  const { isAdmin } = useAuth();
   const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,9 +48,16 @@ const NewsDetailPage = () => {
 
   return (
     <Container className="py-5">
-      <Button as={Link} to="/news" variant="outline-secondary" className="mb-4">
-        Назад к новостям
-      </Button>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <Button as={Link} to="/news" variant="outline-secondary">
+          Назад к новостям
+        </Button>
+        {isAdmin && (
+          <Button as={Link} to={`/admin/news/${id}/edit`} variant="outline-primary">
+            Редактировать
+          </Button>
+        )}
+      </div>
 
       {news.image && (
         <img
@@ -66,6 +76,9 @@ const NewsDetailPage = () => {
             {tag.name}
           </Badge>
         ))}
+        {isAdmin && !news.is_published && (
+          <Badge bg="warning" className="ms-2">Черновик</Badge>
+        )}
       </div>
 
       <p className="text-muted mb-4">
@@ -76,10 +89,14 @@ const NewsDetailPage = () => {
         })}
       </p>
 
-      <div
-        className="news-content"
-        dangerouslySetInnerHTML={{ __html: news.content }}
-      />
+      {news.uses_block_editor ? (
+        <BlockPreview blocks={news.content_blocks || []} />
+      ) : (
+        <div
+          className="news-content"
+          dangerouslySetInnerHTML={{ __html: news.content }}
+        />
+      )}
     </Container>
   );
 };

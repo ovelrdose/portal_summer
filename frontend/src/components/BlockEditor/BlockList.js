@@ -1,7 +1,7 @@
 import React from 'react';
 import BlockItem from './BlockItem';
 
-const BlockList = ({ blocks, onUpdate, onDelete, onMove, sectionId }) => {
+const BlockList = ({ blocks, onUpdate, onDelete, onMove, sectionId, uploadImage }) => {
   if (!blocks || blocks.length === 0) {
     return (
       <div className="empty-state">
@@ -23,6 +23,7 @@ const BlockList = ({ blocks, onUpdate, onDelete, onMove, sectionId }) => {
           onDelete={onDelete}
           onMove={onMove}
           sectionId={sectionId}
+          uploadImage={uploadImage}
         />
       ))}
     </div>

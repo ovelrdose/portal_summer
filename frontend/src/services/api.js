@@ -64,6 +64,13 @@ export const newsAPI = {
   publishNews: (id) => api.post(`/news/${id}/publish/`),
   unpublishNews: (id) => api.post(`/news/${id}/unpublish/`),
   getTags: () => api.get('/news/tags/'),
+  uploadNewsImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/news/upload_image/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // Gallery API

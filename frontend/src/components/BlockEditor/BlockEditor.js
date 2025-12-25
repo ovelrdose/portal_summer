@@ -7,7 +7,7 @@ import BlockList from './BlockList';
 import BlockPreview from './preview/BlockPreview';
 import './BlockEditor.css';
 
-const BlockEditor = ({ blocks, sectionId, onBlocksChange, onSave, saving }) => {
+const BlockEditor = ({ blocks, sectionId, onBlocksChange, onSave, saving, uploadImage, hideHomework }) => {
   const [previewMode, setPreviewMode] = useState(false);
 
   // Генерация уникального ID для блока
@@ -125,13 +125,14 @@ const BlockEditor = ({ blocks, sectionId, onBlocksChange, onSave, saving }) => {
 
         {!previewMode ? (
           <>
-            <BlockToolbar onAddBlock={handleAddBlock} />
+            <BlockToolbar onAddBlock={handleAddBlock} hideHomework={hideHomework} />
             <BlockList
               blocks={blocks}
               onUpdate={handleUpdateBlock}
               onDelete={handleDeleteBlock}
               onMove={handleMoveBlock}
               sectionId={sectionId}
+              uploadImage={uploadImage}
             />
           </>
         ) : (

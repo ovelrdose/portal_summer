@@ -9,7 +9,7 @@ import HomeworkBlock from './blocks/HomeworkBlock';
 
 const ITEM_TYPE = 'BLOCK';
 
-const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId }) => {
+const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, uploadImage }) => {
   const ref = useRef(null);
 
   const [{ isDragging }, drag] = useDrag({
@@ -86,6 +86,7 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId }) => {
             data={block.data}
             onChange={handleChange}
             sectionId={sectionId}
+            uploadImage={uploadImage}
           />
         );
       case 'link':

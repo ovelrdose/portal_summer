@@ -1,8 +1,8 @@
 import React from 'react';
 import { Dropdown } from 'react-bootstrap';
 
-const BlockToolbar = ({ onAddBlock }) => {
-  const blockTypes = [
+const BlockToolbar = ({ onAddBlock, hideHomework }) => {
+  const allBlockTypes = [
     {
       type: 'text',
       label: 'Текст',
@@ -34,6 +34,10 @@ const BlockToolbar = ({ onAddBlock }) => {
       description: 'Задание для студентов',
     },
   ];
+
+  const blockTypes = hideHomework
+    ? allBlockTypes.filter(type => type.type !== 'homework')
+    : allBlockTypes;
 
   return (
     <div className="block-toolbar">

@@ -65,8 +65,8 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
-  const isAdmin = user?.role === 'admin' || user?.is_superuser;
-  const isTeacher = user?.role === 'teacher' || isAdmin;
+  const isAdmin = user?.is_admin || false;
+  const isTeacher = user?.is_teacher || false;
 
   const value = {
     user,

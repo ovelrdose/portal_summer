@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner, Form, Badge } from 'react-bootstrap';
 import { newsAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const NewsPage = () => {
+  const { isAdmin } = useAuth();
   const [news, setNews] = useState([]);
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,9 +26,10 @@ const NewsPage = () => {
   const loadTags = async () => {
     try {
       const response = await newsAPI.getTags();
-      setTags(response.data);
+      setTags(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error loading tags:', error);
+      setTags([]);
     }
   };
 
@@ -47,7 +50,14 @@ const NewsPage = () => {
 
   return (
     <Container className="py-5">
-      <h1 className="mb-4">Новости</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="mb-0">Новости</h1>
+        {isAdmin && (
+          <Button variant="success" as={Link} to="/admin/news/new">
+            + Добавить новость
+          </Button>
+        )}
+      </div>
 
       {/* Filters */}
       <Row className="mb-4">
@@ -68,7 +78,7 @@ const NewsPage = () => {
             >
               Все
             </Badge>
-            {tags.map((tag) => (
+            {Array.isArray(tags) && tags.map((tag) => (
               <Badge
                 key={tag.id}
                 bg={selectedTag === tag.id ? 'primary' : 'secondary'}
@@ -94,7 +104,12 @@ const NewsPage = () => {
                 <Card className="h-100 news-card">
                   <Card.Img variant="top" src={item.image_url} alt={item.title} />
                   <Card.Body>
-                    <Card.Title>{item.title}</Card.Title>
+                    <Card.Title>
+                      {item.title}
+                      {isAdmin && !item.is_published && (
+                        <Badge bg="warning" className="ms-2">Черновик</Badge>
+                      )}
+                    </Card.Title>
                     <Card.Text>{item.short_description}</Card.Text>
                     {item.tags && (
                       <div className="mb-2">
@@ -107,18 +122,32 @@ const NewsPage = () => {
                     )}
                   </Card.Body>
                   <Card.Footer className="bg-white border-0">
-                    <small className="text-muted">
-                      {new Date(item.published_at).toLocaleDateString('ru-RU')}
-                    </small>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="float-end"
-                      as={Link}
-                      to={`/news/${item.id}`}
-                    >
-                      Читать
-                    </Button>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <small className="text-muted">
+                        {new Date(item.published_at).toLocaleDateString('ru-RU')}
+                      </small>
+                      <div>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          as={Link}
+                          to={`/news/${item.id}`}
+                        >
+                          Читать
+                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            as={Link}
+                            to={`/admin/news/${item.id}/edit`}
+                            className="ms-2"
+                          >
+                            ✏
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </Card.Footer>
                 </Card>
               </Col>
