@@ -18,10 +18,24 @@ docker-compose down               # Stop services
 ```
 
 ### Backend (local development)
+
+#### Quick Start (recommended)
+```bash
+cd backend
+# Linux/Mac
+bash init_project.sh
+
+# Windows
+init_project.bat
+```
+
+#### Manual Setup
 ```bash
 cd backend
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py create_default_tags  # Create default news tags
+python manage.py createsuperuser     # Create admin user
 python manage.py runserver        # Runs on http://localhost:8000
 ```
 

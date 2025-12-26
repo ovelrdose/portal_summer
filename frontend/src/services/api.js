@@ -58,8 +58,14 @@ export const newsAPI = {
   getNews: (params) => api.get('/news/', { params }),
   getNewsItem: (id) => api.get(`/news/${id}/`),
   getLatest: () => api.get('/news/latest/'),
-  createNews: (data) => api.post('/news/', data),
-  updateNews: (id, data) => api.patch(`/news/${id}/`, data),
+  createNews: (data) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.post('/news/', data, config);
+  },
+  updateNews: (id, data) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.patch(`/news/${id}/`, data, config);
+  },
   deleteNews: (id) => api.delete(`/news/${id}/`),
   publishNews: (id) => api.post(`/news/${id}/publish/`),
   unpublishNews: (id) => api.post(`/news/${id}/unpublish/`),

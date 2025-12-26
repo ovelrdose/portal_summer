@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Spinner, Form, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner, Form, Badge, Nav } from 'react-bootstrap';
 import { newsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const NewsPage = () => {
   const { isAdmin } = useAuth();
   const [news, setNews] = useState([]);
-  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTag, setSelectedTag] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('published'); // 'published' или 'drafts'
 
   useEffect(() => {
-    loadTags();
     loadNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -21,32 +19,44 @@ const NewsPage = () => {
   useEffect(() => {
     loadNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTag, searchQuery]);
-
-  const loadTags = async () => {
-    try {
-      const response = await newsAPI.getTags();
-      setTags(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error('Error loading tags:', error);
-      setTags([]);
-    }
-  };
+  }, [searchQuery, activeTab]);
 
   const loadNews = async () => {
     setLoading(true);
     try {
       const params = {};
-      if (selectedTag) params.tags = selectedTag;
       if (searchQuery) params.search = searchQuery;
       const response = await newsAPI.getNews(params);
-      setNews(response.data.results || response.data);
+      const allNews = response.data.results || response.data;
+
+      // Подсчитываем черновики для вкладки
+      if (isAdmin) {
+        const drafts = allNews.filter(item => !item.is_published);
+        setDraftsCount(drafts.length);
+      }
+
+      // Фильтруем новости в зависимости от выбранной вкладки
+      let filteredNews = allNews;
+      if (isAdmin) {
+        // Для админа показываем в зависимости от активной вкладки
+        filteredNews = allNews.filter(item =>
+          activeTab === 'published' ? item.is_published : !item.is_published
+        );
+      } else {
+        // Для обычных пользователей показываем только опубликованные
+        filteredNews = allNews.filter(item => item.is_published);
+      }
+
+      setNews(filteredNews);
     } catch (error) {
       console.error('Error loading news:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Подсчитываем количество черновиков для отображения вкладки
+  const [draftsCount, setDraftsCount] = useState(0);
 
   return (
     <Container className="py-5">
@@ -59,36 +69,44 @@ const NewsPage = () => {
         )}
       </div>
 
-      {/* Filters */}
+      {/* Tabs for Admin */}
+      {isAdmin && (
+        <Nav variant="tabs" className="mb-3">
+          <Nav.Item>
+            <Nav.Link
+              active={activeTab === 'published'}
+              onClick={() => setActiveTab('published')}
+              style={{ cursor: 'pointer' }}
+            >
+              Опубликованные
+            </Nav.Link>
+          </Nav.Item>
+          {draftsCount > 0 && (
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'drafts'}
+                onClick={() => setActiveTab('drafts')}
+                style={{ cursor: 'pointer' }}
+              >
+                Черновики ({draftsCount})
+              </Nav.Link>
+            </Nav.Item>
+          )}
+        </Nav>
+      )}
+
+      {/* Search */}
       <Row className="mb-4">
-        <Col md={6}>
+        <Col md={12}>
           <Form.Control
             type="text"
-            placeholder="Поиск по новостям..."
+            placeholder="Поиск по новостям и тегам..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </Col>
-        <Col md={6}>
-          <div className="d-flex flex-wrap gap-2">
-            <Badge
-              bg={selectedTag === '' ? 'primary' : 'secondary'}
-              className="cursor-pointer p-2"
-              onClick={() => setSelectedTag('')}
-            >
-              Все
-            </Badge>
-            {Array.isArray(tags) && tags.map((tag) => (
-              <Badge
-                key={tag.id}
-                bg={selectedTag === tag.id ? 'primary' : 'secondary'}
-                className="cursor-pointer p-2"
-                onClick={() => setSelectedTag(tag.id)}
-              >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
+          <Form.Text className="text-muted">
+            Введите название новости или тег для поиска
+          </Form.Text>
         </Col>
       </Row>
 
@@ -102,7 +120,14 @@ const NewsPage = () => {
             news.map((item) => (
               <Col md={4} key={item.id} className="mb-4">
                 <Card className="h-100 news-card">
-                  <Card.Img variant="top" src={item.image_url} alt={item.title} />
+                  {item.image && (
+                    <Card.Img
+                      variant="top"
+                      src={item.image}
+                      alt={item.title}
+                      style={{ height: '200px', objectFit: 'cover' }}
+                    />
+                  )}
                   <Card.Body>
                     <Card.Title>
                       {item.title}

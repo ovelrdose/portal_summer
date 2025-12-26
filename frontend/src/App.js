@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Spinner, Container } from 'react-bootstrap';
 import { useAuth } from './contexts/AuthContext';
 
@@ -30,6 +30,34 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import CourseEditor from './pages/admin/CourseEditor';
 import HomeworkReviewPage from './pages/admin/HomeworkReviewPage';
 import NewsEditor from './pages/admin/NewsEditor';
+
+// Component to handle initial redirect for authenticated users
+const InitialRedirect = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Ждем завершения загрузки данных авторизации
+    if (loading) return;
+
+    // Проверяем, была ли уже навигация в этой сессии
+    const hasNavigated = sessionStorage.getItem('hasNavigated');
+
+    // Если пользователь авторизован, еще не было навигации, и находимся на главной
+    if (isAuthenticated && !hasNavigated && location.pathname === '/') {
+      // Отмечаем, что редирект произошел
+      sessionStorage.setItem('hasNavigated', 'true');
+      // Редирект на портал курсов
+      navigate('/portal', { replace: true });
+    } else if (!hasNavigated) {
+      // Для неавторизованных пользователей тоже отмечаем, что начальная страница показана
+      sessionStorage.setItem('hasNavigated', 'true');
+    }
+  }, [isAuthenticated, loading, location.pathname, navigate]);
+
+  return children;
+};
 
 // Protected Route component
 const ProtectedRoute = ({ children, requireAdmin = false, requireTeacher = false }) => {
@@ -73,8 +101,9 @@ function App() {
     <div className="d-flex flex-column min-vh-100">
       <Navbar />
       <main className="flex-grow-1">
-        <Routes>
-          {/* Public routes */}
+        <InitialRedirect>
+          <Routes>
+            {/* Public routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/news/:id" element={<NewsDetailPage />} />
@@ -179,7 +208,8 @@ function App() {
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </InitialRedirect>
       </main>
       <Footer />
     </div>

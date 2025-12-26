@@ -23,6 +23,8 @@ const NewsEditor = () => {
   const [contentBlocks, setContentBlocks] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
+  const [loadingTags, setLoadingTags] = useState(true);
+  const [isPublished, setIsPublished] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -42,6 +44,7 @@ const NewsEditor = () => {
       });
       setContentBlocks(data.content_blocks || []);
       setSelectedTags(data.tags?.map(tag => tag.id) || []);
+      setIsPublished(data.is_published || false);
     } catch (error) {
       console.error('Error loading news:', error);
       setError('Ошибка загрузки новости');
@@ -51,12 +54,17 @@ const NewsEditor = () => {
   }, [id]);
 
   const loadTags = useCallback(async () => {
+    setLoadingTags(true);
     try {
       const response = await newsAPI.getTags();
-      setAvailableTags(Array.isArray(response.data) ? response.data : []);
+      const tagsData = Array.isArray(response.data) ? response.data : [];
+      console.log('Loaded tags:', tagsData); // Для отладки
+      setAvailableTags(tagsData);
     } catch (error) {
       console.error('Error loading tags:', error);
       setAvailableTags([]);
+    } finally {
+      setLoadingTags(false);
     }
   }, []);
 
@@ -94,7 +102,8 @@ const NewsEditor = () => {
     );
   };
 
-  const handleSubmit = async (isPublished) => {
+  // Сохранить черновик (для новой новости или изменений черновика)
+  const handleSaveDraft = async () => {
     setSaving(true);
     setError('');
     setSuccess('');
@@ -106,7 +115,7 @@ const NewsEditor = () => {
       data.append('content', ''); // Пустое поле для блочного редактора
       data.append('uses_block_editor', 'true');
       data.append('content_blocks', JSON.stringify(contentBlocks));
-      data.append('is_published', isPublished ? 'true' : 'false');
+      data.append('is_published', 'false');
 
       if (imageFile) {
         data.append('image', imageFile);
@@ -120,7 +129,7 @@ const NewsEditor = () => {
 
       if (isEdit) {
         await newsAPI.updateNews(id, data);
-        setSuccess('Новость сохранена');
+        setSuccess('Черновик сохранен');
         setImageFile(null);
         setImagePreview(null);
         setRemoveImage(false);
@@ -131,11 +140,137 @@ const NewsEditor = () => {
       }
     } catch (err) {
       console.error('Save error:', err.response?.data || err);
-      console.error('Full error:', err);
       const errorMessage = err.response?.data
         ? JSON.stringify(err.response.data, null, 2)
         : 'Ошибка сохранения новости';
       setError(`Ошибка сохранения: ${errorMessage}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Сохранить изменения (для опубликованной новости, без смены статуса)
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('short_description', formData.short_description);
+      data.append('content', '');
+      data.append('uses_block_editor', 'true');
+      data.append('content_blocks', JSON.stringify(contentBlocks));
+
+      if (imageFile) {
+        data.append('image', imageFile);
+      } else if (removeImage) {
+        data.append('image', '');
+      }
+
+      selectedTags.forEach(tagId => {
+        data.append('tags', tagId);
+      });
+
+      await newsAPI.updateNews(id, data);
+      setSuccess('Изменения сохранены');
+      setImageFile(null);
+      setImagePreview(null);
+      setRemoveImage(false);
+      loadNews();
+    } catch (err) {
+      console.error('Save error:', err.response?.data || err);
+      const errorMessage = err.response?.data
+        ? JSON.stringify(err.response.data, null, 2)
+        : 'Ошибка сохранения новости';
+      setError(`Ошибка сохранения: ${errorMessage}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Опубликовать новость (сохранить + установить статус публикации)
+  const handlePublish = async () => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('short_description', formData.short_description);
+      data.append('content', '');
+      data.append('uses_block_editor', 'true');
+      data.append('content_blocks', JSON.stringify(contentBlocks));
+
+      if (imageFile) {
+        data.append('image', imageFile);
+      } else if (removeImage) {
+        data.append('image', '');
+      }
+
+      selectedTags.forEach(tagId => {
+        data.append('tags', tagId);
+      });
+
+      let newsId = id;
+
+      // Если создаем новую новость, сначала создаем ее как черновик
+      if (!isEdit) {
+        data.append('is_published', 'false');
+        const response = await newsAPI.createNews(data);
+        newsId = response.data.id;
+      } else {
+        // Если редактируем существующую, сохраняем изменения
+        await newsAPI.updateNews(id, data);
+      }
+
+      // Теперь публикуем через специальный endpoint
+      await newsAPI.publishNews(newsId);
+
+      // Обновляем состояние и показываем успешное сообщение
+      setSuccess('Новость успешно опубликована');
+      setIsPublished(true);
+      setImageFile(null);
+      setImagePreview(null);
+      setRemoveImage(false);
+
+      // Если создавали новую новость, перенаправляем на страницу редактирования
+      if (!isEdit) {
+        navigate(`/admin/news/${newsId}/edit`);
+      } else {
+        // Если редактировали существующую, перезагружаем данные
+        loadNews();
+      }
+    } catch (err) {
+      console.error('Publish error:', err.response?.data || err);
+      const errorMessage = err.response?.data
+        ? JSON.stringify(err.response.data, null, 2)
+        : 'Ошибка публикации новости';
+      setError(`Ошибка публикации: ${errorMessage}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Вернуть в черновик (снять публикацию)
+  const handleUnpublish = async () => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await newsAPI.unpublishNews(id);
+      setSuccess('Новость возвращена в черновик');
+      setIsPublished(false);
+      loadNews();
+    } catch (err) {
+      console.error('Unpublish error:', err.response?.data || err);
+      const errorMessage = err.response?.data
+        ? JSON.stringify(err.response.data, null, 2)
+        : 'Ошибка снятия с публикации';
+      setError(`Ошибка: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -228,19 +363,37 @@ const NewsEditor = () => {
 
                 <Form.Group className="mb-3">
                   <Form.Label>Теги</Form.Label>
-                  <div className="d-flex flex-wrap gap-2">
-                    {Array.isArray(availableTags) && availableTags.map((tag) => (
-                      <Badge
-                        key={tag.id}
-                        bg={selectedTags.includes(tag.id) ? 'primary' : 'secondary'}
-                        className="cursor-pointer p-2"
-                        onClick={() => handleTagToggle(tag.id)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </div>
+                  {loadingTags ? (
+                    <div className="text-muted">
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Загрузка тегов...
+                    </div>
+                  ) : availableTags.length === 0 ? (
+                    <div className="alert alert-warning mb-0">
+                      <p className="mb-1">Теги не найдены.</p>
+                      <small>Создайте теги через команду: <code>python manage.py create_default_tags</code></small>
+                    </div>
+                  ) : (
+                    <>
+                      <Form.Text className="d-block mb-2 text-muted">
+                        Выбрано тегов: {selectedTags.length}. Нажмите на тег, чтобы выбрать или убрать.
+                      </Form.Text>
+                      <div className="d-flex flex-wrap gap-2">
+                        {availableTags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            bg={selectedTags.includes(tag.id) ? 'primary' : 'secondary'}
+                            className="cursor-pointer p-2"
+                            onClick={() => handleTagToggle(tag.id)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {selectedTags.includes(tag.id) && '✓ '}
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </Form.Group>
               </Form>
             </Card.Body>
@@ -262,32 +415,66 @@ const NewsEditor = () => {
         <Col lg={4}>
           <Card className="sticky-top" style={{ top: '80px' }}>
             <Card.Body>
+              {isEdit && (
+                <div className="mb-3">
+                  <Badge bg={isPublished ? 'success' : 'secondary'} className="w-100 p-2">
+                    {isPublished ? 'Опубликована' : 'Черновик'}
+                  </Badge>
+                </div>
+              )}
+
               <div className="d-grid gap-2">
-                <Button
-                  variant="success"
-                  onClick={() => handleSubmit(true)}
-                  disabled={saving}
-                >
-                  {saving ? 'Сохранение...' : 'Опубликовать'}
-                </Button>
-                <Button
-                  variant="outline-primary"
-                  onClick={() => handleSubmit(false)}
-                  disabled={saving}
-                >
-                  Сохранить черновик
-                </Button>
+                {isPublished ? (
+                  // Кнопки для опубликованной новости
+                  <>
+                    <Button
+                      variant="primary"
+                      onClick={handleSaveChanges}
+                      disabled={saving}
+                    >
+                      {saving ? 'Сохранение...' : 'Сохранить'}
+                    </Button>
+                    <Button
+                      variant="warning"
+                      onClick={handleUnpublish}
+                      disabled={saving}
+                    >
+                      Вернуть в черновик
+                    </Button>
+                  </>
+                ) : (
+                  // Кнопки для черновика
+                  <>
+                    <Button
+                      variant="success"
+                      onClick={handlePublish}
+                      disabled={saving}
+                    >
+                      {saving ? 'Публикация...' : 'Опубликовать'}
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      onClick={handleSaveDraft}
+                      disabled={saving}
+                    >
+                      Сохранить в черновик
+                    </Button>
+                  </>
+                )}
+
                 <Button
                   variant="outline-secondary"
                   as={Link}
-                  to="/news"
+                  to="/admin/news"
                 >
                   Отмена
                 </Button>
+
                 {isEdit && (
                   <Button
                     variant="danger"
                     onClick={() => setShowDeleteModal(true)}
+                    disabled={saving || deleting}
                   >
                     Удалить новость
                   </Button>

@@ -29,7 +29,7 @@ class AlbumViewSet(viewsets.ModelViewSet):
         return AlbumDetailSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'latest']:
             return [permissions.AllowAny()]
         return [IsAdmin()]
 
@@ -47,7 +47,7 @@ class AlbumViewSet(viewsets.ModelViewSet):
         album.save()
         return Response({'status': 'Альбом снят с публикации'})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny()])
     def latest(self, request):
         """Последние альбомы для главной страницы"""
         albums = self.get_queryset()[:6]

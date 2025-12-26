@@ -48,7 +48,7 @@ class NewsViewSet(viewsets.ModelViewSet):
         return NewsDetailSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'latest']:
             return [permissions.AllowAny()]
         return [IsAdmin()]
 

@@ -20,7 +20,9 @@ const HomePage = () => {
         newsAPI.getLatest(),
         galleryAPI.getLatest(),
       ]);
-      setNews(newsRes.data);
+      // Фильтруем только опубликованные новости для главной страницы
+      const publishedNews = (newsRes.data || []).filter(item => item.is_published);
+      setNews(publishedNews);
       setAlbums(albumsRes.data);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -77,11 +79,14 @@ const HomePage = () => {
               news.map((item) => (
                 <Col md={4} key={item.id} className="mb-4">
                   <Card className="h-100 news-card">
-                    <Card.Img
-                      variant="top"
-                      src={item.image_url}
-                      alt={item.title}
-                    />
+                    {item.image && (
+                      <Card.Img
+                        variant="top"
+                        src={item.image}
+                        alt={item.title}
+                        style={{ height: '200px', objectFit: 'cover' }}
+                      />
+                    )}
                     <Card.Body>
                       <Card.Title>{item.title}</Card.Title>
                       <Card.Text>{item.short_description}</Card.Text>

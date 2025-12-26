@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('hasNavigated'); // Сбросить флаг навигации
       setUser(null);
     }
   };

@@ -59,15 +59,6 @@ const NewsDetailPage = () => {
         )}
       </div>
 
-      {news.image && (
-        <img
-          src={news.image}
-          alt={news.title}
-          className="img-fluid rounded mb-4"
-          style={{ maxHeight: '400px', width: '100%', objectFit: 'cover' }}
-        />
-      )}
-
       <h1 className="mb-3">{news.title}</h1>
 
       <div className="mb-3">
