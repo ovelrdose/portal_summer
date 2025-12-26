@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Album(models.Model):
@@ -9,6 +10,15 @@ class Album(models.Model):
         upload_to='gallery/covers/',
         blank=True,
         null=True
+    )
+
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='created_albums',
+        verbose_name='Создатель',
+        null=True,  # Временно для миграции
+        blank=True
     )
 
     is_published = models.BooleanField('Опубликовано', default=False)
@@ -34,7 +44,7 @@ class Album(models.Model):
         first_photo = self.photos.first()
         if first_photo:
             return first_photo.image.url
-        return '/static/images/default-album.jpg'
+        return None
 
 
 class Photo(models.Model):

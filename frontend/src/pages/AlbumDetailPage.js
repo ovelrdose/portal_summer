@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Container, Row, Col, Spinner, Button, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Spinner, Button, Modal, Card, Alert, Badge, Form } from 'react-bootstrap';
 import { galleryAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const AlbumDetailPage = () => {
   const { id } = useParams();
+  const { isAdmin } = useAuth();
   const [album, setAlbum] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+  // States for photo upload
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState('');
+
+  // State for photo deletion
+  const [deletingPhotoId, setDeletingPhotoId] = useState(null);
 
   useEffect(() => {
     loadAlbum();
@@ -22,6 +33,63 @@ const AlbumDetailPage = () => {
       console.error('Error loading album:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(files);
+    setUploadError('');
+  };
+
+  const handleUploadPhotos = async () => {
+    if (selectedFiles.length === 0) {
+      setUploadError('Выберите файлы для загрузки');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess('');
+
+    try {
+      const formData = new FormData();
+      formData.append('album', id);
+
+      selectedFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+
+      await galleryAPI.uploadPhotos(id, formData);
+      setUploadSuccess(`Успешно загружено ${selectedFiles.length} фото`);
+      setSelectedFiles([]);
+      // Сбросить input
+      const fileInput = document.getElementById('photoUploadInput');
+      if (fileInput) fileInput.value = '';
+
+      // Перезагрузить альбом
+      loadAlbum();
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(error.response?.data?.error || 'Ошибка загрузки фотографий');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeletePhoto = async (photoId) => {
+    if (!window.confirm('Удалить эту фотографию?')) return;
+
+    setDeletingPhotoId(photoId);
+    try {
+      await galleryAPI.deletePhoto(photoId);
+      setUploadSuccess('Фотография удалена');
+      loadAlbum();
+    } catch (error) {
+      console.error('Delete error:', error);
+      setUploadError('Ошибка удаления фотографии');
+    } finally {
+      setDeletingPhotoId(null);
     }
   };
 
@@ -50,25 +118,109 @@ const AlbumDetailPage = () => {
         Назад к галерее
       </Button>
 
-      <h1 className="mb-2">{album.title}</h1>
-      {album.description && <p className="text-muted mb-4">{album.description}</p>}
+      <div className="d-flex justify-content-between align-items-start mb-4">
+        <div>
+          <h1 className="mb-2">
+            {album.title}
+            {isAdmin && !album.is_published && (
+              <Badge bg="warning" className="ms-2">Черновик</Badge>
+            )}
+          </h1>
+          {album.description && <p className="text-muted">{album.description}</p>}
+        </div>
+        {isAdmin && (
+          <Button
+            variant="outline-primary"
+            as={Link}
+            to={`/admin/albums/${id}/edit`}
+          >
+            ✏ Редактировать альбом
+          </Button>
+        )}
+      </div>
+
+      {/* Photo upload section for admin */}
+      {isAdmin && (
+        <Card className="mb-4">
+          <Card.Header>Добавить фотографии</Card.Header>
+          <Card.Body>
+            {uploadError && (
+              <Alert variant="danger" dismissible onClose={() => setUploadError('')}>
+                {uploadError}
+              </Alert>
+            )}
+            {uploadSuccess && (
+              <Alert variant="success" dismissible onClose={() => setUploadSuccess('')}>
+                {uploadSuccess}
+              </Alert>
+            )}
+
+            <Form.Group className="mb-3">
+              <Form.Label>Выберите фотографии для загрузки</Form.Label>
+              <Form.Control
+                id="photoUploadInput"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+              />
+              {selectedFiles.length > 0 && (
+                <Form.Text className="text-muted">
+                  Выбрано файлов: {selectedFiles.length}
+                </Form.Text>
+              )}
+            </Form.Group>
+
+            <Button
+              variant="success"
+              onClick={handleUploadPhotos}
+              disabled={uploading || selectedFiles.length === 0}
+            >
+              {uploading ? 'Загрузка...' : 'Загрузить фотографии'}
+            </Button>
+          </Card.Body>
+        </Card>
+      )}
+
+      <h3 className="mb-3">
+        Фотографии ({album.photos?.length || 0})
+      </h3>
 
       <Row>
         {album.photos?.length > 0 ? (
           album.photos.map((photo) => (
             <Col xs={6} md={4} lg={3} key={photo.id} className="mb-4">
-              <img
-                src={photo.image}
-                alt={photo.title || 'Фото'}
-                className="img-fluid rounded cursor-pointer"
-                style={{ height: '200px', width: '100%', objectFit: 'cover' }}
-                onClick={() => setSelectedPhoto(photo)}
-              />
+              <Card>
+                <Card.Img
+                  variant="top"
+                  src={photo.image}
+                  alt={photo.title || 'Фото'}
+                  style={{ height: '200px', objectFit: 'cover', cursor: 'pointer' }}
+                  onClick={() => setSelectedPhoto(photo)}
+                />
+                {isAdmin && (
+                  <Card.Body className="p-2">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="w-100"
+                      onClick={() => handleDeletePhoto(photo.id)}
+                      disabled={deletingPhotoId === photo.id}
+                    >
+                      {deletingPhotoId === photo.id ? 'Удаление...' : '🗑 Удалить'}
+                    </Button>
+                  </Card.Body>
+                )}
+              </Card>
             </Col>
           ))
         ) : (
           <Col>
-            <p className="text-muted">В альбоме пока нет фотографий</p>
+            <p className="text-muted text-center">
+              {isAdmin
+                ? 'В альбоме пока нет фотографий. Загрузите фотографии выше.'
+                : 'В альбоме пока нет фотографий'}
+            </p>
           </Col>
         )}
       </Row>
@@ -80,6 +232,9 @@ const AlbumDetailPage = () => {
         size="xl"
         centered
       >
+        <Modal.Header closeButton>
+          <Modal.Title>{selectedPhoto?.title || 'Просмотр фото'}</Modal.Title>
+        </Modal.Header>
         <Modal.Body className="p-0">
           {selectedPhoto && (
             <img
@@ -89,6 +244,11 @@ const AlbumDetailPage = () => {
             />
           )}
         </Modal.Body>
+        {selectedPhoto?.description && (
+          <Modal.Footer>
+            <p className="text-muted mb-0">{selectedPhoto.description}</p>
+          </Modal.Footer>
+        )}
       </Modal>
     </Container>
   );

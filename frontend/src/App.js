@@ -30,6 +30,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import CourseEditor from './pages/admin/CourseEditor';
 import HomeworkReviewPage from './pages/admin/HomeworkReviewPage';
 import NewsEditor from './pages/admin/NewsEditor';
+import AlbumEditor from './pages/admin/AlbumEditor';
 
 // Component to handle initial redirect for authenticated users
 const InitialRedirect = ({ children }) => {
@@ -202,6 +203,22 @@ function App() {
             element={
               <ProtectedRoute requireAdmin>
                 <NewsEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/albums/new"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AlbumEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/albums/:id/edit"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AlbumEditor />
               </ProtectedRoute>
             }
           />

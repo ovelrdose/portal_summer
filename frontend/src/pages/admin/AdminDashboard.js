@@ -106,6 +106,49 @@ const AdminDashboard = () => {
         </Col>
       </Row>
 
+      {/* Content Management */}
+      <Row className="mb-4">
+        <Col>
+          <Card>
+            <Card.Header>Управление контентом</Card.Header>
+            <Card.Body>
+              <Row>
+                <Col md={4} className="mb-3 mb-md-0">
+                  <div className="d-grid gap-2">
+                    <Button variant="primary" as={Link} to="/admin/news/new">
+                      + Создать новость
+                    </Button>
+                    <Button variant="outline-primary" as={Link} to="/news">
+                      Просмотр всех новостей
+                    </Button>
+                  </div>
+                </Col>
+                <Col md={4} className="mb-3 mb-md-0">
+                  <div className="d-grid gap-2">
+                    <Button variant="success" as={Link} to="/admin/courses/new">
+                      + Создать курс
+                    </Button>
+                    <Button variant="outline-success" as={Link} to="/portal/courses">
+                      Просмотр всех курсов
+                    </Button>
+                  </div>
+                </Col>
+                <Col md={4}>
+                  <div className="d-grid gap-2">
+                    <Button variant="info" as={Link} to="/admin/albums/new">
+                      + Создать альбом
+                    </Button>
+                    <Button variant="outline-info" as={Link} to="/gallery">
+                      Перейти к галерее
+                    </Button>
+                  </div>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
       <Row>
         {/* Users by Grade */}
         <Col md={6} className="mb-4">

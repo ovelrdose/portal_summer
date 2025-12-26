@@ -84,9 +84,18 @@ export const galleryAPI = {
   getAlbums: (params) => api.get('/gallery/albums/', { params }),
   getAlbum: (id) => api.get(`/gallery/albums/${id}/`),
   getLatest: () => api.get('/gallery/albums/latest/'),
-  createAlbum: (data) => api.post('/gallery/albums/', data),
-  updateAlbum: (id, data) => api.patch(`/gallery/albums/${id}/`, data),
+  createAlbum: (data) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.post('/gallery/albums/', data, config);
+  },
+  updateAlbum: (id, data) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.patch(`/gallery/albums/${id}/`, data, config);
+  },
   deleteAlbum: (id) => api.delete(`/gallery/albums/${id}/`),
+  publishAlbum: (id) => api.post(`/gallery/albums/${id}/publish/`),
+  unpublishAlbum: (id) => api.post(`/gallery/albums/${id}/unpublish/`),
+  getPhotos: (albumId) => api.get('/gallery/photos/', { params: { album: albumId } }),
   uploadPhotos: (albumId, files) => {
     const formData = new FormData();
     formData.append('album', albumId);
@@ -95,6 +104,7 @@ export const galleryAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  updatePhoto: (id, data) => api.patch(`/gallery/photos/${id}/`, data),
   deletePhoto: (id) => api.delete(`/gallery/photos/${id}/`),
 };
 
