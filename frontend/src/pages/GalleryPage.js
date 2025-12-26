@@ -23,12 +23,6 @@ const GalleryPage = () => {
       const response = await galleryAPI.getAlbums();
       const allAlbums = response.data.results || response.data;
 
-      // Временное логирование для отладки
-      console.log('Albums data:', allAlbums);
-      if (allAlbums.length > 0) {
-        console.log('First album cover_url:', allAlbums[0].cover_url);
-      }
-
       // Подсчитываем черновики для вкладки
       if (isAdmin) {
         const drafts = allAlbums.filter(item => !item.is_published);

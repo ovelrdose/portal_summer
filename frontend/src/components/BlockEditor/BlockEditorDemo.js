@@ -36,14 +36,12 @@ const BlockEditorDemo = () => {
 
     // Имитация сохранения на сервер
     setTimeout(() => {
-      console.log('Сохраненные блоки:', blocks);
-      alert('Блоки сохранены! Смотрите консоль для деталей.');
+      alert('Блоки сохранены!');
       setSaving(false);
     }, 1500);
   };
 
   const handleBlocksChange = (newBlocks) => {
-    console.log('Блоки изменены:', newBlocks);
     setBlocks(newBlocks);
   };
 

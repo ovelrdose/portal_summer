@@ -124,8 +124,6 @@ def _get_homework_schedule_for_course(course, user, now):
     from datetime import datetime
     homework_items = []
 
-    print(f"[_get_homework_schedule_for_course] Course: {course.title}, User: {user.email}")
-
     # Получаем все разделы курса (опубликованные и разблокированные)
     sections = course.sections.filter(
         is_published=True
@@ -133,10 +131,7 @@ def _get_homework_schedule_for_course(course, user, now):
         Q(publish_datetime__isnull=True) | Q(publish_datetime__lte=now)
     ).prefetch_related('elements')
 
-    print(f"[_get_homework_schedule_for_course] Unlocked sections count: {sections.count()}")
-
     for section in sections:
-        print(f"[_get_homework_schedule_for_course] - Section: {section.title}")
         # Получаем все элементы типа homework с дедлайном
         homework_elements = section.elements.filter(
             content_type=ContentElement.ContentType.HOMEWORK,
@@ -145,14 +140,10 @@ def _get_homework_schedule_for_course(course, user, now):
             Q(publish_datetime__isnull=True) | Q(publish_datetime__lte=now)
         )
 
-        print(f"[_get_homework_schedule_for_course]   Homework elements: {homework_elements.count()}")
-
         for hw_element in homework_elements:
-            print(f"[_get_homework_schedule_for_course]   - HW Element: {hw_element.title or hw_element.id}, data: {hw_element.data}")
             deadline = hw_element.data.get('deadline') if hw_element.data else None
 
             if not deadline:
-                print(f"[_get_homework_schedule_for_course]     -> No deadline, skipping")
                 continue  # Пропускаем ДЗ без дедлайна
 
             # Парсим дедлайн
@@ -166,9 +157,7 @@ def _get_homework_schedule_for_course(course, user, now):
                 if timezone.is_naive(deadline_dt):
                     deadline_dt = timezone.make_aware(deadline_dt)
 
-                print(f"[_get_homework_schedule_for_course]     -> Deadline: {deadline_dt}")
             except (ValueError, AttributeError, TypeError) as e:
-                print(f"[_get_homework_schedule_for_course]     -> Failed to parse deadline: {e}")
                 continue  # Пропускаем если не удалось распарсить
 
             # Проверяем наличие ответа
@@ -180,15 +169,11 @@ def _get_homework_schedule_for_course(course, user, now):
             has_submission = submission is not None
             submission_status = submission.status if submission else None
 
-            print(f"[_get_homework_schedule_for_course]     -> Has submission: {has_submission}, Status: {submission_status}")
-
             # Включаем в расписание если:
             # 1. Нет ответа
             # 2. ИЛИ ответ требует доработки (revision_requested)
             if not has_submission or submission_status == HomeworkSubmission.Status.REVISION_REQUESTED:
                 is_overdue = deadline_dt < now
-
-                print(f"[_get_homework_schedule_for_course]     -> Adding to schedule (is_overdue: {is_overdue})")
 
                 homework_items.append({
                     'item_type': 'homework',
@@ -203,10 +188,7 @@ def _get_homework_schedule_for_course(course, user, now):
                     'has_submission': has_submission,
                     'submission_status': submission_status,
                 })
-            else:
-                print(f"[_get_homework_schedule_for_course]     -> Not adding (has submission with status: {submission_status})")
 
-    print(f"[_get_homework_schedule_for_course] Total homework items: {len(homework_items)}")
     return homework_items
 
 
@@ -221,13 +203,10 @@ def _get_locked_content_for_course(course, user, now):
 
     # Получаем все разделы курса
     sections = course.sections.filter(is_published=True)
-    print(f"[_get_locked_content_for_course] Course: {course.title}, Sections count: {sections.count()}")
 
     for section in sections:
-        print(f"[_get_locked_content_for_course] - Section: {section.title}, publish_datetime: {section.publish_datetime}, now: {now}")
         # Если раздел заблокирован
         if section.publish_datetime and section.publish_datetime > now:
-            print(f"[_get_locked_content_for_course]   -> Section is locked, adding to schedule")
             locked_items.append({
                 'item_type': 'section',
                 'item_id': section.id,
@@ -246,13 +225,10 @@ def _get_locked_content_for_course(course, user, now):
 
         # Получаем элементы раздела
         elements = section.elements.filter(is_published=True)
-        print(f"[_get_locked_content_for_course]   Elements count: {elements.count()}")
 
         for element in elements:
-            print(f"[_get_locked_content_for_course]   - Element: {element.title or element.content_type}, publish_datetime: {element.publish_datetime}")
             # Если элемент заблокирован
             if element.publish_datetime and element.publish_datetime > now:
-                print(f"[_get_locked_content_for_course]     -> Element is locked, adding to schedule")
                 locked_items.append({
                     'item_type': 'element',
                     'item_id': element.id,
@@ -269,7 +245,6 @@ def _get_locked_content_for_course(course, user, now):
                     'submission_status': None,
                 })
 
-    print(f"[_get_locked_content_for_course] Total locked items: {len(locked_items)}")
     return locked_items
 
 
@@ -1128,39 +1103,27 @@ class MyScheduleView(APIView):
         user = request.user
         now = timezone.now()
 
-        print(f"[MyScheduleView] User: {user.email}, is_admin: {user.is_admin}, is_teacher: {user.is_teacher}")
-
         # Получаем все курсы, на которые подписан пользователь
         subscribed_courses = Course.objects.filter(
             subscribers=user,
             is_published=True
         ).prefetch_related('sections', 'sections__elements')
 
-        print(f"[MyScheduleView] Subscribed courses count: {subscribed_courses.count()}")
-        for course in subscribed_courses:
-            print(f"[MyScheduleView] - Course: {course.title} (id={course.id})")
-
         unlocks = []
         homeworks = []
 
         for course in subscribed_courses:
-            print(f"[MyScheduleView] Processing course: {course.title}")
-
             # ЧАСТЬ 1: Собираем заблокированные материалы
             unlock_items = _get_locked_content_for_course(course, user, now)
-            print(f"[MyScheduleView] - Locked items: {len(unlock_items)}")
             unlocks.extend(unlock_items)
 
             # ЧАСТЬ 2: Собираем ДЗ с дедлайнами
             homework_items = _get_homework_schedule_for_course(course, user, now)
-            print(f"[MyScheduleView] - Homework items: {len(homework_items)}")
             # Добавляем информацию о курсе
             for item in homework_items:
                 item['course_id'] = course.id
                 item['course_title'] = course.title
             homeworks.extend(homework_items)
-
-        print(f"[MyScheduleView] Total unlocks: {len(unlocks)}, Total homeworks: {len(homeworks)}")
 
         # Сортировка
         unlocks.sort(key=lambda x: x['unlock_datetime'])

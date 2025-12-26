@@ -19,9 +19,6 @@ const MySchedulePage = () => {
   const loadSchedule = async () => {
     try {
       const response = await coursesAPI.getMySchedule();
-      console.log('MySchedule API response:', response.data);
-      console.log('Unlocks:', response.data.unlocks);
-      console.log('Homeworks:', response.data.homeworks);
       setUnlocks(response.data.unlocks || []);
       setHomeworks(response.data.homeworks || []);
     } catch (err) {

@@ -58,7 +58,6 @@ const NewsEditor = () => {
     try {
       const response = await newsAPI.getTags();
       const tagsData = Array.isArray(response.data) ? response.data : [];
-      console.log('Loaded tags:', tagsData); // Для отладки
       setAvailableTags(tagsData);
     } catch (error) {
       console.error('Error loading tags:', error);
