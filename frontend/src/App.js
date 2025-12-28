@@ -17,6 +17,9 @@ import AlbumDetailPage from './pages/AlbumDetailPage';
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import EmailConfirmPage from './pages/auth/EmailConfirmPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Protected pages
 import PortalPage from './pages/portal/PortalPage';
@@ -114,6 +117,9 @@ function App() {
           {/* Auth routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/email-confirmed" element={<EmailConfirmPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
 
           {/* Protected routes */}
           <Route

@@ -9,6 +9,11 @@ urlpatterns = [
     # API
     path('api/auth/', include('dj_rest_auth.urls')),
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
+
+    # Django-allauth URLs (required for email confirmation with ACCOUNT_CONFIRM_EMAIL_ON_GET=True)
+    # This provides the actual ConfirmEmailView that handles GET requests and redirects
+    path('api/auth/registration/', include('allauth.account.urls')),
+
     path('api/users/', include('apps.users.urls')),
     path('api/news/', include('apps.news.urls')),
     path('api/gallery/', include('apps.gallery.urls')),

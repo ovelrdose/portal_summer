@@ -66,7 +66,7 @@ class AlbumViewSet(viewsets.ModelViewSet):
     def latest(self, request):
         """Последние опубликованные альбомы для главной страницы"""
         albums = self.get_queryset()[:6]
-        serializer = AlbumListSerializer(albums, many=True)
+        serializer = AlbumListSerializer(albums, many=True, context={'request': request})
         return Response(serializer.data)
 
 
