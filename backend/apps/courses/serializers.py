@@ -10,10 +10,19 @@ class BlockDataValidator:
 
     VIDEO_PATTERNS = {
         'youtube': re.compile(
-            r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})'
+            r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})'
         ),
         'vimeo': re.compile(
             r'vimeo\.com/(?:video/)?(\d+)'
+        ),
+        'vk': re.compile(
+            r'(?:vk\.com/video|vkvideo\.ru/video)(-?\d+_\d+)'
+        ),
+        'rutube': re.compile(
+            r'rutube\.ru/(?:video|play/embed)/([a-zA-Z0-9]+)'
+        ),
+        'dzen': re.compile(
+            r'dzen\.ru/(?:video/watch|embed)/([a-zA-Z0-9]+)'
         ),
     }
 
@@ -82,10 +91,29 @@ class BlockDataValidator:
                 video_id = match.group(1)
                 break
 
+        # Если не нашли известный провайдер, проверяем на универсальный embed URL
         if not provider:
-            raise serializers.ValidationError(
-                "Поддерживаются только видео с YouTube и Vimeo"
-            )
+            # Если URL похож на embed URL (содержит /embed/ или player) или начинается с https://
+            if '/embed/' in url or 'player.' in url or url.startswith('https://'):
+                try:
+                    # Проверяем, что это валидный URL
+                    from urllib.parse import urlparse
+                    parsed = urlparse(url)
+                    if parsed.scheme in ['http', 'https'] and parsed.netloc:
+                        provider = 'custom'
+                        video_id = url  # Для custom provider весь URL является идентификатором
+                    else:
+                        raise serializers.ValidationError(
+                            "Неверный формат URL видео"
+                        )
+                except Exception:
+                    raise serializers.ValidationError(
+                        "Неверный формат URL видео"
+                    )
+            else:
+                raise serializers.ValidationError(
+                    "Поддерживаются: YouTube, Vimeo, VK Video, Rutube, Dzen или любой embed URL"
+                )
 
         # Добавляем извлеченные данные
         data['provider'] = provider
