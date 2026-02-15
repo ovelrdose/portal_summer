@@ -45,19 +45,6 @@ const MySchedulePage = () => {
     );
   }
 
-  const isTeacher = user && (user.is_teacher || user.is_admin);
-
-  if (isTeacher) {
-    return (
-      <Container className="py-5">
-        <h2 className="mb-4">Мое расписание</h2>
-        <Alert variant="info">
-          Расписание доступно только для студентов
-        </Alert>
-      </Container>
-    );
-  }
-
   // Разделяем ДЗ на просроченные и актуальные
   const overdueHomeworks = homeworks.filter(hw => hw.is_overdue);
   const upcomingHomeworks = homeworks.filter(hw => !hw.is_overdue);
