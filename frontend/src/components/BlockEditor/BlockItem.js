@@ -4,6 +4,7 @@ import { Badge, Button, Form, Collapse } from 'react-bootstrap';
 import TextBlock from './blocks/TextBlock';
 import VideoBlock from './blocks/VideoBlock';
 import ImageBlock from './blocks/ImageBlock';
+import GalleryBlock from './blocks/GalleryBlock';
 import LinkBlock from './blocks/LinkBlock';
 import HomeworkBlock from './blocks/HomeworkBlock';
 import { formatDateTimeLocal, dateTimeLocalToISO } from '../../utils/dateUtils';
@@ -55,6 +56,7 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
       text: 'Текст',
       video: 'Видео',
       image: 'Изображение',
+      gallery: 'Галерея',
       link: 'Ссылка',
       homework: 'Д/З',
     };
@@ -66,6 +68,7 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
       text: 'primary',
       video: 'danger',
       image: 'success',
+      gallery: 'warning',
       link: 'info',
       homework: 'warning',
     };
@@ -101,6 +104,15 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
       case 'image':
         return (
           <ImageBlock
+            data={block.data}
+            onChange={handleChange}
+            sectionId={sectionId}
+            uploadImage={uploadImage}
+          />
+        );
+      case 'gallery':
+        return (
+          <GalleryBlock
             data={block.data}
             onChange={handleChange}
             sectionId={sectionId}

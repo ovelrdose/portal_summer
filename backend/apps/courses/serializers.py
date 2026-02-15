@@ -32,7 +32,7 @@ class BlockDataValidator:
         Валидирует данные блока согласно его типу.
 
         Args:
-            content_type: Тип контента (text, video, image, link, homework)
+            content_type: Тип контента (text, video, image, link, homework, gallery)
             data: Словарь с данными блока
 
         Returns:
@@ -50,6 +50,7 @@ class BlockDataValidator:
             'image': cls._validate_image,
             'link': cls._validate_link,
             'homework': cls._validate_homework,
+            'gallery': cls._validate_gallery,
         }
 
         validator = validators.get(content_type)
@@ -168,6 +169,47 @@ class BlockDataValidator:
                         )
                 except ValueError:
                     raise serializers.ValidationError("Неверный формат даты для deadline")
+
+        return data
+
+    @classmethod
+    def _validate_gallery(cls, data: dict) -> dict:
+        """Валидация блока галереи изображений"""
+        if 'images' not in data:
+            raise serializers.ValidationError("Поле 'images' обязательно для блока галереи")
+
+        images = data['images']
+        if not isinstance(images, list):
+            raise serializers.ValidationError("Поле 'images' должно быть массивом")
+
+        # Проверяем каждое изображение в галерее
+        for idx, image in enumerate(images):
+            if not isinstance(image, dict):
+                raise serializers.ValidationError(
+                    f"Изображение #{idx + 1} должно быть объектом"
+                )
+
+            if 'url' not in image:
+                raise serializers.ValidationError(
+                    f"Изображение #{idx + 1}: отсутствует обязательное поле 'url'"
+                )
+
+            url = image['url']
+            if not isinstance(url, str) or not url:
+                raise serializers.ValidationError(
+                    f"Изображение #{idx + 1}: URL должен быть непустой строкой"
+                )
+
+            # caption и alt опциональны
+            if 'caption' in image and not isinstance(image['caption'], str):
+                raise serializers.ValidationError(
+                    f"Изображение #{idx + 1}: 'caption' должен быть строкой"
+                )
+
+            if 'alt' in image and not isinstance(image['alt'], str):
+                raise serializers.ValidationError(
+                    f"Изображение #{idx + 1}: 'alt' должен быть строкой"
+                )
 
         return data
 

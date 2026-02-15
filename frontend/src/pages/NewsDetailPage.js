@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Container, Spinner, Badge, Button } from 'react-bootstrap';
 import { newsAPI } from '../services/api';
 import BlockPreview from '../components/BlockEditor/preview/BlockPreview';
+import ImageGallery from '../components/ImageGallery';
 import { useAuth } from '../contexts/AuthContext';
 
 const NewsDetailPage = () => {
@@ -79,6 +80,11 @@ const NewsDetailPage = () => {
           day: 'numeric',
         })}
       </p>
+
+      {/* Image Gallery */}
+      {news.images && news.images.length > 0 && (
+        <ImageGallery images={news.images} />
+      )}
 
       {news.uses_block_editor ? (
         <BlockPreview blocks={news.content_blocks || []} />

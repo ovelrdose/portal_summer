@@ -1,4 +1,5 @@
 import React from 'react';
+import ImageGallery from '../../ImageGallery';
 import { getEmbedUrl } from '../utils/videoUtils';
 
 const BlockPreview = ({ blocks }) => {
@@ -20,6 +21,8 @@ const BlockPreview = ({ blocks }) => {
         return renderVideoBlock(block);
       case 'image':
         return renderImageBlock(block);
+      case 'gallery':
+        return renderGalleryBlock(block);
       case 'link':
         return renderLinkBlock(block);
       case 'homework':
@@ -64,6 +67,23 @@ const BlockPreview = ({ blocks }) => {
       <div className="preview-image">
         <img src={block.data.url} alt={block.data.alt || 'Изображение'} />
         {block.data.caption && <div className="caption">{block.data.caption}</div>}
+      </div>
+    );
+  };
+
+  const renderGalleryBlock = (block) => {
+    if (!block.data?.images || block.data.images.length === 0) return null;
+
+    // Преобразуем формат изображений для ImageGallery
+    const galleryImages = block.data.images.map((img, index) => ({
+      id: index,
+      image: img.url,
+      caption: img.caption || '',
+    }));
+
+    return (
+      <div className="preview-gallery">
+        <ImageGallery images={galleryImages} />
       </div>
     );
   };

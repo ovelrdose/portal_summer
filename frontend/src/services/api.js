@@ -78,6 +78,16 @@ export const newsAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  uploadGalleryImage: (newsId, formData) =>
+    api.post(`/news/${newsId}/gallery/upload/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  deleteGalleryImage: (newsId, imageId) =>
+    api.delete(`/news/${newsId}/gallery/${imageId}/`),
+  updateGalleryImage: (newsId, imageId, data) =>
+    api.patch(`/news/${newsId}/gallery/${imageId}/`, data),
+  reorderGallery: (newsId, imageIds) =>
+    api.patch(`/news/${newsId}/gallery/reorder/`, { image_ids: imageIds }),
 };
 
 // Gallery API

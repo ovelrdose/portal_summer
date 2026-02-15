@@ -22,6 +22,12 @@ const BlockToolbar = ({ onAddBlock, hideHomework }) => {
       description: 'Загрузить картинку',
     },
     {
+      type: 'gallery',
+      label: 'Галерея',
+      icon: '🖼️',
+      description: 'Галерея изображений',
+    },
+    {
       type: 'link',
       label: 'Ссылка',
       icon: '🔗',
