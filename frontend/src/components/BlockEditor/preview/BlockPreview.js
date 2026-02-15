@@ -1,6 +1,7 @@
 import React from 'react';
 import ImageGallery from '../../ImageGallery';
 import { getEmbedUrl } from '../utils/videoUtils';
+import '../BlockEditor.css';
 
 const BlockPreview = ({ blocks }) => {
   if (!blocks || blocks.length === 0) {

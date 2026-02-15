@@ -8,6 +8,7 @@ import { coursesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import LockedContentAlert from '../../components/LockedContentAlert';
 import { isContentLocked, formatDateTimeDisplay } from '../../utils/dateUtils';
+import '../../components/BlockEditor/BlockEditor.css';
 
 const CourseDetailPage = () => {
   const { id } = useParams();
@@ -253,7 +254,7 @@ const CourseDetailPage = () => {
           </div>
 
           <div
-            className="mb-4"
+            className="preview-text mb-4"
             dangerouslySetInnerHTML={{ __html: course.description }}
           />
 
@@ -352,6 +353,7 @@ const CourseDetailPage = () => {
                                   {/* Текстовый блок */}
                                   {element.content_type === 'text' && (
                                 <div
+                                  className="preview-text"
                                   dangerouslySetInnerHTML={{
                                     __html: element.data?.html || element.text_content || '',
                                   }}
@@ -476,7 +478,7 @@ const CourseDetailPage = () => {
                                               <div className="mt-2">
                                                 <strong>Комментарий преподавателя:</strong>
                                                 <div
-                                                  className="mt-1"
+                                                  className="preview-text mt-1"
                                                   dangerouslySetInnerHTML={{
                                                     __html: element.my_submission.teacher_comment,
                                                   }}
@@ -502,7 +504,7 @@ const CourseDetailPage = () => {
                                               <div className="mb-3">
                                                 <strong>Комментарий преподавателя:</strong>
                                                 <div
-                                                  className="mt-1"
+                                                  className="preview-text mt-1"
                                                   dangerouslySetInnerHTML={{
                                                     __html: element.my_submission.teacher_comment,
                                                   }}
@@ -721,7 +723,7 @@ const CourseDetailPage = () => {
               <Alert variant="warning">
                 <strong>Комментарий преподавателя:</strong>
                 <div
-                  className="mt-2"
+                  className="preview-text mt-2"
                   dangerouslySetInnerHTML={{
                     __html: resubmitElement.my_submission.teacher_comment,
                   }}

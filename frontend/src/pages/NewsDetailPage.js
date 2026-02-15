@@ -90,7 +90,7 @@ const NewsDetailPage = () => {
         <BlockPreview blocks={news.content_blocks || []} />
       ) : (
         <div
-          className="news-content"
+          className="preview-text news-content"
           dangerouslySetInnerHTML={{ __html: news.content }}
         />
       )}

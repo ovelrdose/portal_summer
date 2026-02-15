@@ -98,7 +98,14 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
 
     switch (block.type) {
       case 'text':
-        return <TextBlock data={block.data} onChange={handleChange} />;
+        return (
+          <TextBlock
+            data={block.data}
+            onChange={handleChange}
+            sectionId={sectionId}
+            uploadImage={uploadImage}
+          />
+        );
       case 'video':
         return <VideoBlock data={block.data} onChange={handleChange} />;
       case 'image':

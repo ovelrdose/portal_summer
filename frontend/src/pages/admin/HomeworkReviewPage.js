@@ -6,6 +6,7 @@ import {
 } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import RichTextEditor from '../../components/RichTextEditor';
+import '../../components/BlockEditor/BlockEditor.css';
 
 const HomeworkReviewPage = () => {
   const { id } = useParams();
@@ -323,6 +324,7 @@ const HomeworkReviewPage = () => {
                                 <div>
                                   <strong>Комментарий:</strong>
                                   <div
+                                    className="preview-text"
                                     dangerouslySetInnerHTML={{
                                       __html: hw.teacher_comment,
                                     }}
@@ -346,6 +348,7 @@ const HomeworkReviewPage = () => {
                               <div className="mt-2">
                                 <small>Комментарий:</small>
                                 <div
+                                  className="preview-text"
                                   dangerouslySetInnerHTML={{
                                     __html: hw.teacher_comment,
                                   }}
@@ -527,6 +530,7 @@ const HomeworkReviewPage = () => {
                     <td>
                       {entry.teacher_comment ? (
                         <div
+                          className="preview-text"
                           dangerouslySetInnerHTML={{
                             __html: entry.teacher_comment,
                           }}

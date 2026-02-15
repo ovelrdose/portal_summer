@@ -164,10 +164,41 @@
   cursor: not-allowed;
 }
 
+.toolbar-separator {
+  color: #dee2e6;
+  margin: 0 5px;
+  user-select: none;
+}
+
+.toolbar-select {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  outline: none;
+  max-width: 150px;
+}
+
+.toolbar-select:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.toolbar-select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
 .ProseMirror {
   padding: 15px;
   outline: none;
   min-height: 200px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -197,6 +228,68 @@
   padding-left: 1rem;
   margin-left: 0;
   color: #6c757d;
+}
+
+/* Выравнивание текста в редакторе */
+.ProseMirror [style*="text-align: left"] {
+  text-align: left;
+}
+
+.ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}
+
+.ProseMirror [style*="text-align: justify"] {
+  text-align: justify;
+}
+
+/* Изображения в редакторе */
+.ProseMirror img.editor-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 10px 0;
+  display: inline-block;
+}
+
+.ProseMirror img.float-left {
+  float: left;
+  margin: 0 20px 10px 0;
+}
+
+.ProseMirror img.float-right {
+  float: right;
+  margin: 0 0 10px 20px;
+}
+
+/* Параграфы и другие блочные элементы рядом с float-изображениями */
+.ProseMirror p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Очистка обтекания */
+.ProseMirror::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Ссылки в редакторе */
+.ProseMirror a.editor-link {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ProseMirror a.editor-link:hover {
+  color: #0056b3;
 }
 
 /* Image Block */
@@ -349,6 +442,70 @@
 
 .preview-text {
   line-height: 1.6;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Выравнивание текста в превью */
+.preview-text [style*="text-align: left"] {
+  text-align: left;
+}
+
+.preview-text [style*="text-align: center"] {
+  text-align: center;
+}
+
+.preview-text [style*="text-align: right"] {
+  text-align: right;
+}
+
+.preview-text [style*="text-align: justify"] {
+  text-align: justify;
+}
+
+/* Изображения в превью */
+.preview-text img.editor-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 10px 0;
+  display: inline-block;
+}
+
+.preview-text img.float-left {
+  float: left;
+  margin: 0 20px 10px 0;
+}
+
+.preview-text img.float-right {
+  float: right;
+  margin: 0 0 10px 20px;
+}
+
+/* Параграфы и другие блочные элементы рядом с float-изображениями */
+.preview-text p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Очистка обтекания в превью */
+.preview-text::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Ссылки в превью */
+.preview-text a.editor-link {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.preview-text a.editor-link:hover {
+  color: #0056b3;
 }
 
 .preview-text h2 {
