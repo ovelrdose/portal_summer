@@ -5,13 +5,13 @@ from .models import Course, Section, ContentElement, HomeworkSubmission, Homewor
 class SectionInline(admin.TabularInline):
     model = Section
     extra = 1
-    fields = ['title', 'order', 'is_published']
+    fields = ['title', 'order', 'is_published', 'publish_datetime']
 
 
 class ContentElementInline(admin.TabularInline):
     model = ContentElement
     extra = 1
-    fields = ['content_type', 'title', 'order', 'is_published']
+    fields = ['content_type', 'title', 'order', 'is_published', 'publish_datetime']
 
 
 @admin.register(Course)
@@ -28,17 +28,38 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Section)
 class SectionAdmin(admin.ModelAdmin):
-    list_display = ['title', 'course', 'order', 'is_published']
-    list_filter = ['course', 'is_published']
+    list_display = ['title', 'course', 'order', 'is_published', 'publish_datetime']
+    list_filter = ['course', 'is_published', 'publish_datetime']
     list_editable = ['order']
     inlines = [ContentElementInline]
+    fieldsets = [
+        (None, {
+            'fields': ['course', 'title', 'order']
+        }),
+        ('Публикация', {
+            'fields': ['is_published', 'publish_datetime'],
+            'description': 'Если указана дата публикации, раздел будет заблокирован до этого времени'
+        }),
+    ]
 
 
 @admin.register(ContentElement)
 class ContentElementAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'section', 'content_type', 'order', 'is_published']
-    list_filter = ['content_type', 'section__course', 'is_published']
+    list_display = ['__str__', 'section', 'content_type', 'order', 'is_published', 'publish_datetime']
+    list_filter = ['content_type', 'section__course', 'is_published', 'publish_datetime']
     list_editable = ['order']
+    fieldsets = [
+        (None, {
+            'fields': ['section', 'content_type', 'title', 'order']
+        }),
+        ('Контент', {
+            'fields': ['text_content', 'image', 'link_url', 'link_text', 'homework_description', 'data']
+        }),
+        ('Публикация', {
+            'fields': ['is_published', 'publish_datetime'],
+            'description': 'Если указана дата публикации, элемент будет заблокирован до этого времени'
+        }),
+    ]
 
 
 @admin.register(HomeworkSubmission)

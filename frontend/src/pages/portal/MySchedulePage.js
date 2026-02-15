@@ -3,10 +3,8 @@ import { Container, Card, Table, Spinner, Alert, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { coursesAPI } from '../../services/api';
 import { formatDateTimeDisplay } from '../../utils/dateUtils';
-import { useAuth } from '../../contexts/AuthContext';
 
 const MySchedulePage = () => {
-  const { user } = useAuth();
   const [unlocks, setUnlocks] = useState([]);
   const [homeworks, setHomeworks] = useState([]);
   const [loading, setLoading] = useState(true);

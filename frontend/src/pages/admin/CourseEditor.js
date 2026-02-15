@@ -57,6 +57,7 @@ const CourseEditor = () => {
       order: el.order,
       title: el.title || '',
       is_published: el.is_published,
+      publish_datetime: el.publish_datetime || null,
     }));
   };
 
@@ -70,6 +71,7 @@ const CourseEditor = () => {
       data: block.data || {},
       order: index,
       is_published: block.is_published !== false,
+      publish_datetime: block.publish_datetime || null,
     }));
   };
 
@@ -330,6 +332,7 @@ const CourseEditor = () => {
             data: element.data,
             order: element.order,
             is_published: element.is_published,
+            publish_datetime: element.publish_datetime,
           });
         } else {
           // Создаем новый
@@ -340,6 +343,7 @@ const CourseEditor = () => {
             data: element.data,
             order: element.order,
             is_published: element.is_published,
+            publish_datetime: element.publish_datetime,
           });
         }
       }

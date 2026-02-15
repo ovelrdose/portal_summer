@@ -1,16 +1,18 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
-import { Badge, Button } from 'react-bootstrap';
+import { Badge, Button, Form, Collapse } from 'react-bootstrap';
 import TextBlock from './blocks/TextBlock';
 import VideoBlock from './blocks/VideoBlock';
 import ImageBlock from './blocks/ImageBlock';
 import LinkBlock from './blocks/LinkBlock';
 import HomeworkBlock from './blocks/HomeworkBlock';
+import { formatDateTimeLocal, dateTimeLocalToISO } from '../../utils/dateUtils';
 
 const ITEM_TYPE = 'BLOCK';
 
 const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, uploadImage }) => {
   const ref = useRef(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const [{ isDragging }, drag] = useDrag({
     type: ITEM_TYPE,
@@ -70,6 +72,22 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
     return variants[type] || 'secondary';
   };
 
+  const handlePublishDatetimeChange = (e) => {
+    const value = e.target.value;
+    onUpdate(block.id, {
+      ...block,
+      publish_datetime: value ? dateTimeLocalToISO(value) : null,
+    });
+  };
+
+  const handleTitleChange = (e) => {
+    const value = e.target.value;
+    onUpdate(block.id, {
+      ...block,
+      title: value,
+    });
+  };
+
   const renderBlockContent = () => {
     const handleChange = (newData) => {
       onUpdate(block.id, { ...block, data: newData });
@@ -110,7 +128,21 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
         <Badge bg={getBlockTypeBadgeVariant(block.type)} className="block-type-badge">
           {getBlockTypeLabel(block.type)}
         </Badge>
+        {block.publish_datetime && (
+          <Badge bg="secondary" className="ms-1" title="Дата публикации установлена">
+            <i className="bi bi-clock"></i>
+          </Badge>
+        )}
         <div className="block-item-actions">
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={() => setShowSettings(!showSettings)}
+            title="Настройки блока"
+            className="me-1"
+          >
+            ⚙️
+          </Button>
           <Button
             variant="outline-danger"
             size="sm"
@@ -121,6 +153,34 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
           </Button>
         </div>
       </div>
+
+      <Collapse in={showSettings}>
+        <div className="block-item-settings p-3 bg-light border-bottom">
+          <Form.Group className="mb-2">
+            <Form.Label className="small mb-1">Заголовок блока (опционально)</Form.Label>
+            <Form.Control
+              type="text"
+              size="sm"
+              value={block.title || ''}
+              onChange={handleTitleChange}
+              placeholder="Введите заголовок"
+            />
+          </Form.Group>
+          <Form.Group className="mb-0">
+            <Form.Label className="small mb-1">Дата и время открытия (опционально)</Form.Label>
+            <Form.Control
+              type="datetime-local"
+              size="sm"
+              value={formatDateTimeLocal(block.publish_datetime)}
+              onChange={handlePublishDatetimeChange}
+            />
+            <Form.Text className="text-muted">
+              Если указано, элемент будет скрыт для студентов до этой даты
+            </Form.Text>
+          </Form.Group>
+        </div>
+      </Collapse>
+
       <div className="block-item-content">
         {renderBlockContent()}
       </div>

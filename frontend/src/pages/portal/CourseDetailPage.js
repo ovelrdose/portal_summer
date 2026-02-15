@@ -306,22 +306,33 @@ const CourseDetailPage = () => {
                         ) : (
                           section.elements
                             ?.filter((e) => {
-                              if (canEdit) return e.is_published;
-                              return e.is_published && !isContentLocked(e.publish_datetime);
+                              // Показываем все опубликованные элементы (и заблокированные тоже)
+                              return e.is_published;
                             })
                             .map((element) => {
-                            // Check if element is locked for students (double protection)
-                            const isElementLocked = element.is_locked && !canEdit;
+                            // Check if element is locked for students
+                            const isElementLocked = !canEdit && isContentLocked(element.publish_datetime);
 
                             return (
                             <div key={element.id} className="mb-3 pb-3 border-bottom">
-                              {element.title && (
+                              {(element.title || isElementLocked) && (
                                 <h5>
                                   {isElementLocked && (
-                                    <i className="bi bi-lock-fill text-muted me-2"
-                                       title={`Откроется ${formatDateTimeDisplay(element.unlock_datetime)}`}></i>
+                                    <i className="bi bi-lock-fill text-warning me-2"
+                                       title={`Откроется ${formatDateTimeDisplay(element.publish_datetime)}`}></i>
                                   )}
-                                  {element.title}
+                                  <span className={isElementLocked ? 'text-muted' : ''}>
+                                    {element.title || `${element.content_type === 'text' ? 'Текст' :
+                                      element.content_type === 'video' ? 'Видео' :
+                                      element.content_type === 'image' ? 'Изображение' :
+                                      element.content_type === 'link' ? 'Ссылка' :
+                                      element.content_type === 'homework' ? 'Домашнее задание' : 'Элемент'}`}
+                                  </span>
+                                  {isElementLocked && (
+                                    <Badge bg="warning" className="ms-2">
+                                      <i className="bi bi-clock"></i> Откроется {formatDateTimeDisplay(element.publish_datetime)}
+                                    </Badge>
+                                  )}
                                   {canEdit && element.publish_datetime && isContentLocked(element.publish_datetime) && (
                                     <Badge bg="secondary" className="ms-2">
                                       <i className="bi bi-lock"></i> До {formatDateTimeDisplay(element.publish_datetime)}
@@ -348,17 +359,36 @@ const CourseDetailPage = () => {
                               )}
 
                               {/* Видео блок */}
-                              {element.content_type === 'video' && element.data?.video_id && (
-                                <div className="ratio ratio-16x9">
-                                  <iframe
-                                    src={
-                                      element.data.provider === 'youtube'
-                                        ? `https://www.youtube.com/embed/${element.data.video_id}`
-                                        : `https://player.vimeo.com/video/${element.data.video_id}`
-                                    }
-                                    title={element.data.title || 'Видео'}
-                                    allowFullScreen
-                                  />
+                              {element.content_type === 'video' && element.data?.videoId && (
+                                <div>
+                                  {element.data.title && !element.title && (
+                                    <h6 className="mb-2">{element.data.title}</h6>
+                                  )}
+                                  <div className="ratio ratio-16x9">
+                                    <iframe
+                                      src={(() => {
+                                        const { provider, videoId } = element.data;
+                                        if (provider === 'youtube') {
+                                          return `https://www.youtube.com/embed/${videoId}`;
+                                        } else if (provider === 'vimeo') {
+                                          return `https://player.vimeo.com/video/${videoId}`;
+                                        } else if (provider === 'vk') {
+                                          const [oid, id] = videoId.split('_');
+                                          return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&hd=2`;
+                                        } else if (provider === 'rutube') {
+                                          return `https://rutube.ru/play/embed/${videoId}`;
+                                        } else if (provider === 'dzen') {
+                                          return `https://dzen.ru/embed/${videoId}?from_block=partner&from=zen&mute=0&autoplay=0&tv=0`;
+                                        } else if (provider === 'custom') {
+                                          return videoId; // videoId содержит полный embed URL
+                                        }
+                                        return '';
+                                      })()}
+                                      title={element.data.title || 'Видео'}
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                    />
+                                  </div>
                                 </div>
                               )}
 
