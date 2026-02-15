@@ -166,6 +166,7 @@ PASSWORD_RESET_TIMEOUT = 86400  # 24 часа в секундах
 
 # Django Allauth
 SITE_ID = 1
+ACCOUNT_ADAPTER = 'apps.users.adapters.AsyncEmailAccountAdapter'  # Кастомный адаптер для асинхронной отправки email
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Обязательная верификация email
 ACCOUNT_AUTHENTICATION_METHOD = 'email'

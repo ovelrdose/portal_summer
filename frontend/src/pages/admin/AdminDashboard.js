@@ -11,6 +11,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState('');
 
@@ -55,6 +56,22 @@ const AdminDashboard = () => {
       loadData();
     } catch (error) {
       console.error('Error assigning role:', error);
+    }
+  };
+
+  const openDeleteModal = (user) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      await usersAPI.deleteUser(selectedUser.id);
+      setShowDeleteModal(false);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert(error.response?.data?.error || 'Ошибка при удалении пользователя');
     }
   };
 
@@ -280,8 +297,16 @@ const AdminDashboard = () => {
                           variant="outline-primary"
                           size="sm"
                           onClick={() => openRoleModal(user)}
+                          className="me-2"
                         >
                           Роль
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => openDeleteModal(user)}
+                        >
+                          Удалить
                         </Button>
                       </td>
                     </tr>
@@ -324,6 +349,37 @@ const AdminDashboard = () => {
           </Button>
           <Button variant="primary" onClick={handleAssignRole}>
             Сохранить
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Удалить пользователя</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedUser && (
+            <>
+              <p>Вы уверены, что хотите удалить пользователя?</p>
+              <p>
+                <strong>Имя:</strong> {selectedUser.full_name}
+                <br />
+                <strong>Email:</strong> {selectedUser.email}
+              </p>
+              <p className="text-danger">
+                <strong>Внимание:</strong> Это действие необратимо. Все данные пользователя,
+                включая домашние задания и подписки на курсы, будут удалены.
+              </p>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Отмена
+          </Button>
+          <Button variant="danger" onClick={handleDeleteUser}>
+            Удалить
           </Button>
         </Modal.Footer>
       </Modal>

@@ -95,3 +95,24 @@ def assign_role(request):
     return Response({
         'message': f'Пользователю {user.email} назначена роль {user.get_role_display()}'
     })
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdmin])
+def delete_user(request, pk):
+    """Удаление пользователя администратором"""
+    user = get_object_or_404(User, pk=pk)
+
+    # Запрещаем удалять самого себя
+    if user.id == request.user.id:
+        return Response(
+            {'error': 'Вы не можете удалить свою учетную запись'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user_email = user.email
+    user.delete()
+
+    return Response({
+        'message': f'Пользователь {user_email} успешно удален'
+    })

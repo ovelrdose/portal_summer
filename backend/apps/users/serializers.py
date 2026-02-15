@@ -120,12 +120,14 @@ class CustomPasswordResetSerializer(serializers.Serializer):
 
         from django.conf import settings
         from django.contrib.auth import get_user_model
-        from django.core.mail import send_mail
         from django.template.loader import render_to_string
 
         # Используем allauth token generator и uid encoder для совместимости с dj-rest-auth
         from allauth.account.forms import default_token_generator
         from allauth.account.utils import user_pk_to_url_str
+
+        # Импортируем асинхронную отправку email
+        from .utils import send_mail_async
 
         User = get_user_model()
 
@@ -155,8 +157,8 @@ class CustomPasswordResetSerializer(serializers.Serializer):
         subject = render_to_string('registration/password_reset_subject.txt', context).strip()
         html_message = render_to_string('registration/password_reset_email.html', context)
 
-        # Отправляем email
-        send_mail(
+        # Отправляем email асинхронно (не блокируем HTTP-запрос)
+        send_mail_async(
             subject=subject,
             message='',
             from_email=settings.DEFAULT_FROM_EMAIL,

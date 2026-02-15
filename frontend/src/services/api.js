@@ -51,6 +51,7 @@ export const usersAPI = {
   getUser: (id) => api.get(`/users/${id}/`),
   assignRole: (data) => api.post('/users/admin/assign-role/', data),
   resetPassword: (data) => api.post('/users/admin/reset-password/', data),
+  deleteUser: (id) => api.delete(`/users/${id}/delete/`),
 };
 
 // News API
