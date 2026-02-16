@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Form, Button, Alert } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage = () => {
@@ -30,60 +30,53 @@ const LoginPage = () => {
   };
 
   return (
-    <Container className="py-5">
-      <Row className="justify-content-center">
-        <Col md={6} lg={5}>
-          <Card>
-            <Card.Body className="p-4">
-              <h2 className="text-center mb-4">Вход</h2>
+    <Container>
+      <div className="custom-form-container">
+        <h2 className="custom-form-title">Вход</h2>
 
-              {error && <Alert variant="danger">{error}</Alert>}
+        {error && <Alert variant="danger">{error}</Alert>}
 
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </Form.Group>
+        <Form onSubmit={handleSubmit}>
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="custom-form-control"
+              required
+            />
+          </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Пароль</Form.Label>
-                  <Form.Control
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
-                </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="password"
+              placeholder="Пароль"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="custom-form-control"
+              required
+            />
+          </Form.Group>
 
-                <Button
-                  variant="primary"
-                  type="submit"
-                  className="w-100"
-                  disabled={loading}
-                >
-                  {loading ? 'Вход...' : 'Войти'}
-                </Button>
-              </Form>
+          <Button
+            type="submit"
+            className="btn-custom-primary custom-form-btn"
+            disabled={loading}
+          >
+            {loading ? 'Вход...' : 'Войти'}
+          </Button>
+        </Form>
 
-              <hr />
-
-              <div className="text-center">
-                <p className="mb-2">
-                  Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
-                </p>
-                <Link to="/forgot-password" className="text-muted">
-                  Забыли пароль?
-                </Link>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+        <div className="text-center mt-4">
+          <p className="mb-2">
+            Нет аккаунта? <Link to="/register" className="custom-form-link">Зарегистрироваться</Link>
+          </p>
+          <Link to="/forgot-password" className="custom-form-link">
+            Забыли пароль?
+          </Link>
+        </div>
+      </div>
     </Container>
   );
 };

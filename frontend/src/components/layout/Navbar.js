@@ -13,28 +13,38 @@ const Navbar = () => {
   };
 
   return (
-    <BsNavbar bg="dark" variant="dark" expand="lg" sticky="top" style={{ zIndex: 1050 }}>
-      <Container>
-        <BsNavbar.Brand as={Link} to="/">
+    <Container style={{ paddingTop: '1rem', paddingBottom: '1rem' }}>
+      <BsNavbar expand="lg" className="custom-navbar">
+        <BsNavbar.Brand as={Link} to="/" className="handwriting">
           Портал курсов
         </BsNavbar.Brand>
         <BsNavbar.Toggle aria-controls="navbar-nav" />
         <BsNavbar.Collapse id="navbar-nav">
           <Nav className="me-auto">
-            <Nav.Link as={Link} to="/">Главная</Nav.Link>
-            <Nav.Link as={Link} to="/news">Новости</Nav.Link>
-            <Nav.Link as={Link} to="/gallery">Галерея</Nav.Link>
+            <Nav.Link as={Link} to="/">
+              <i className="bi bi-house-fill me-1"></i> Главная
+            </Nav.Link>
+            <Nav.Link as={Link} to="/news">
+              <i className="bi bi-newspaper me-1"></i> Новости
+            </Nav.Link>
+            <Nav.Link as={Link} to="/gallery">
+              <i className="bi bi-images me-1"></i> Галерея
+            </Nav.Link>
             {isAuthenticated && (
               <>
-                <Nav.Link as={Link} to="/portal">Портал курсов</Nav.Link>
-                <Nav.Link as={Link} to="/portal/my-schedule">Мое расписание</Nav.Link>
+                <Nav.Link as={Link} to="/portal">
+                  <i className="bi bi-mortarboard-fill me-1"></i> Курсы
+                </Nav.Link>
+                <Nav.Link as={Link} to="/portal/my-schedule">
+                  <i className="bi bi-calendar3 me-1"></i> Расписание
+                </Nav.Link>
               </>
             )}
           </Nav>
           <Nav>
             {isAuthenticated ? (
               <Dropdown align="end">
-                <Dropdown.Toggle variant="outline-light" id="user-dropdown">
+                <Dropdown.Toggle className="custom-dropdown-toggle" id="user-dropdown">
                   {user?.first_name || 'Профиль'}
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
@@ -68,22 +78,21 @@ const Navbar = () => {
             ) : (
               <>
                 <Button
-                  variant="outline-light"
-                  className="me-2"
+                  className="navbar-btn-outline me-2"
                   as={Link}
                   to="/login"
                 >
                   Войти
                 </Button>
-                <Button variant="light" as={Link} to="/register">
+                <Button className="navbar-btn-primary" as={Link} to="/register">
                   Регистрация
                 </Button>
               </>
             )}
           </Nav>
         </BsNavbar.Collapse>
-      </Container>
-    </BsNavbar>
+      </BsNavbar>
+    </Container>
   );
 };
 

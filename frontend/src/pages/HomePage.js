@@ -5,7 +5,7 @@ import { newsAPI, galleryAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const HomePage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [news, setNews] = useState([]);
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,64 +42,91 @@ const HomePage = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="hero-section text-center">
-        <Container>
-          <h1 className="display-4 mb-4">Добро пожаловать на портал курсов</h1>
-          <p className="lead mb-4">
-            Изучайте новое с авторскими курсами от лучших преподавателей
-          </p>
-          {isAuthenticated ? (
-            <Button variant="light" size="lg" as={Link} to="/portal">
-              Перейти к курсам
-            </Button>
-          ) : (
-            <div>
-              <Button variant="light" size="lg" className="me-3" as={Link} to="/register">
-                Зарегистрироваться
-              </Button>
-              <Button variant="outline-light" size="lg" as={Link} to="/login">
-                Войти
-              </Button>
+      <Container>
+        <div className="custom-hero">
+          {/* Left Block - User Greeting */}
+          <div className="custom-hero-left">
+            <div className="custom-hero-greeting">
+              <div className="custom-hero-avatar">
+                <i className="bi bi-person-circle"></i>
+              </div>
+              <h2>
+                {isAuthenticated
+                  ? `Добро пожаловать, ${user?.first_name || 'Пользователь'}!`
+                  : 'Добро пожаловать!'}
+              </h2>
             </div>
-          )}
-        </Container>
-      </section>
+            <div className="custom-hero-image">
+              <img src="/images/hero/teacher.png" alt="Преподаватель" />
+            </div>
+          </div>
+
+          {/* Right Block - Portal Info */}
+          <div className="custom-hero-right">
+            <div className="custom-hero-content">
+              <h1 className="custom-hero-title">Добро пожаловать на портал курсов</h1>
+              <p className="custom-hero-text">
+                Изучайте новое с авторскими курсами от лучших преподавателей
+              </p>
+              {isAuthenticated ? (
+                <Button className="btn-custom-primary" size="lg" as={Link} to="/portal">
+                  Перейти к курсам
+                </Button>
+              ) : (
+                <div>
+                  <Button className="btn-custom-primary me-3" size="lg" as={Link} to="/register">
+                    Зарегистрироваться
+                  </Button>
+                  <Button className="navbar-btn-outline" size="lg" as={Link} to="/login">
+                    Войти
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div className="custom-hero-illustration">
+              <img src="/images/hero/education-illustration.png" alt="Обучение" />
+            </div>
+          </div>
+        </div>
+      </Container>
 
       {/* News Section */}
       <section className="py-5">
         <Container>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2>Последние новости</h2>
-            <Link to="/news" className="btn btn-outline-primary">
+          <div className="custom-section-header">
+            <h2 className="custom-section-title">Последние новости</h2>
+            <Link to="/news" className="btn-custom-cyan">
               Все новости
             </Link>
           </div>
-          <Row>
+          <Row className="g-4">
             {news.length > 0 ? (
               news.map((item) => (
-                <Col md={4} key={item.id} className="mb-4">
-                  <Card className="h-100 news-card">
+                <Col md={12} key={item.id}>
+                  <Card className="custom-card custom-card-horizontal">
+                    <div className="card-content">
+                      <div>
+                        <h3 className="custom-card-title">{item.title}</h3>
+                        <p className="custom-card-text">{item.short_description}</p>
+                      </div>
+                      <div>
+                        <Button
+                          className="btn-custom-primary"
+                          as={Link}
+                          to={`/news/${item.id}`}
+                        >
+                          Читать далее
+                        </Button>
+                      </div>
+                    </div>
                     {item.image && (
-                      <Card.Img
-                        variant="top"
-                        src={item.image}
-                        alt={item.title}
-                        style={{ height: '200px', objectFit: 'cover' }}
-                      />
+                      <div className="card-image">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                        />
+                      </div>
                     )}
-                    <Card.Body>
-                      <Card.Title>{item.title}</Card.Title>
-                      <Card.Text>{item.short_description}</Card.Text>
-                    </Card.Body>
-                    <Card.Footer className="bg-white border-0">
-                      <Button
-                        variant="primary"
-                        as={Link}
-                        to={`/news/${item.id}`}
-                      >
-                        Читать далее
-                      </Button>
-                    </Card.Footer>
                   </Card>
                 </Col>
               ))
@@ -113,40 +140,42 @@ const HomePage = () => {
       </section>
 
       {/* Gallery Section */}
-      <section className="py-5 bg-light">
+      <section className="py-5">
         <Container>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2>Фотогалерея</h2>
-            <Link to="/gallery" className="btn btn-outline-primary">
+          <div className="custom-section-header">
+            <h2 className="custom-section-title">Фотогалерея</h2>
+            <Link to="/gallery" className="btn-custom-cyan">
               Вся галерея
             </Link>
           </div>
-          <Row>
+          <Row className="g-4">
             {albums.length > 0 ? (
-              albums.slice(0, 4).map((album) => (
-                <Col md={3} key={album.id} className="mb-4">
-                  <Card className="h-100 album-card">
-                    <Card.Img
-                      variant="top"
-                      src={album.cover_url}
-                      alt={album.title}
-                    />
-                    <Card.Body>
-                      <Card.Title>{album.title}</Card.Title>
-                      <small className="text-muted">
-                        {album.photos_count} фото
-                      </small>
-                    </Card.Body>
-                    <Card.Footer className="bg-white border-0">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        as={Link}
-                        to={`/gallery/${album.id}`}
-                      >
-                        Открыть
-                      </Button>
-                    </Card.Footer>
+              albums.slice(0, 3).map((album) => (
+                <Col md={12} key={album.id}>
+                  <Card className="custom-card custom-card-horizontal">
+                    <div className="card-content">
+                      <div>
+                        <h3 className="custom-card-title">{album.title}</h3>
+                        <p className="custom-card-text">
+                          <small className="text-muted">{album.photos_count} фото</small>
+                        </p>
+                      </div>
+                      <div>
+                        <Button
+                          className="btn-custom-primary"
+                          as={Link}
+                          to={`/gallery/${album.id}`}
+                        >
+                          Смотреть
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="card-image">
+                      <img
+                        src={album.cover_url}
+                        alt={album.title}
+                      />
+                    </div>
                   </Card>
                 </Col>
               ))

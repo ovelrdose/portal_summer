@@ -51,10 +51,10 @@ const GalleryPage = () => {
 
   return (
     <Container className="py-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="mb-0">Фотогалерея</h1>
+      <div className="custom-section-header mb-4">
+        <h1 className="custom-section-title mb-0">Фотогалерея</h1>
         {isAdmin && (
-          <Button variant="success" as={Link} to="/admin/albums/new">
+          <Button className="btn-custom-cyan" as={Link} to="/admin/albums/new">
             + Добавить альбом
           </Button>
         )}
@@ -91,61 +91,33 @@ const GalleryPage = () => {
           <Spinner animation="border" />
         </div>
       ) : (
-        <Row>
+        <Row className="g-4">
           {albums.length > 0 ? (
             albums.map((album) => (
-              <Col md={4} lg={3} key={album.id} className="mb-4">
-                <Card className="h-100">
-                  {album.cover_url && !imageErrors[album.id] ? (
-                    <Card.Img
-                      variant="top"
-                      src={album.cover_url}
-                      alt={album.title}
-                      style={{ height: '200px', objectFit: 'cover', cursor: 'pointer' }}
-                      onClick={() => window.location.href = `/gallery/${album.id}`}
-                      onError={() => setImageErrors(prev => ({ ...prev, [album.id]: true }))}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        height: '200px',
-                        backgroundColor: '#e9ecef',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        color: '#6c757d',
-                        fontSize: '4rem'
-                      }}
-                      onClick={() => window.location.href = `/gallery/${album.id}`}
-                    >
-                      <div className="text-center">
-                        <div>🖼️</div>
-                        <p className="mb-0 mt-2" style={{ fontSize: '0.875rem' }}>Нет обложки</p>
-                      </div>
-                    </div>
-                  )}
-                  <Card.Body>
-                    <Card.Title>
-                      {album.title}
-                      {isAdmin && !album.is_published && (
-                        <Badge bg="warning" className="ms-2">Черновик</Badge>
+              <Col md={12} key={album.id}>
+                <Card className="custom-card custom-card-horizontal">
+                  <div className="card-content">
+                    <div>
+                      <h3 className="custom-card-title">
+                        {album.title}
+                        {isAdmin && !album.is_published && (
+                          <Badge bg="warning" className="ms-2">Черновик</Badge>
+                        )}
+                      </h3>
+                      {album.description && (
+                        <p className="custom-card-text">
+                          {album.description.length > 150
+                            ? `${album.description.substring(0, 150)}...`
+                            : album.description}
+                        </p>
                       )}
-                    </Card.Title>
-                    {album.description && (
-                      <Card.Text className="text-muted small">
-                        {album.description.length > 100
-                          ? `${album.description.substring(0, 100)}...`
-                          : album.description}
-                      </Card.Text>
-                    )}
-                    <small className="text-muted">{album.photos_count} фото</small>
-                  </Card.Body>
-                  <Card.Footer className="bg-white border-0">
-                    <div className="d-flex justify-content-between align-items-center">
+                      <p className="custom-card-text">
+                        <small className="text-muted">{album.photos_count} фото</small>
+                      </p>
+                    </div>
+                    <div className="d-flex gap-2">
                       <Button
-                        variant="primary"
-                        size="sm"
+                        className="btn-custom-primary btn-sm-custom"
                         as={Link}
                         to={`/gallery/${album.id}`}
                       >
@@ -153,16 +125,41 @@ const GalleryPage = () => {
                       </Button>
                       {isAdmin && (
                         <Button
-                          variant="outline-secondary"
-                          size="sm"
+                          className="btn-custom-outline btn-sm-custom"
                           as={Link}
                           to={`/admin/albums/${album.id}/edit`}
                         >
-                          ✏
+                          ✏ Изменить
                         </Button>
                       )}
                     </div>
-                  </Card.Footer>
+                  </div>
+                  <div className="card-image">
+                    {album.cover_url && !imageErrors[album.id] ? (
+                      <img
+                        src={album.cover_url}
+                        alt={album.title}
+                        onError={() => setImageErrors(prev => ({ ...prev, [album.id]: true }))}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          height: '100%',
+                          backgroundColor: '#e9ecef',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#6c757d',
+                          fontSize: '4rem'
+                        }}
+                      >
+                        <div className="text-center">
+                          <div>🖼️</div>
+                          <p className="mb-0 mt-2" style={{ fontSize: '0.875rem' }}>Нет обложки</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </Card>
               </Col>
             ))

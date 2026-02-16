@@ -259,10 +259,10 @@ const CourseDetailPage = () => {
           />
 
           {/* Course Sections */}
-          <h3 className="mb-3">Содержание курса</h3>
+          <h3 className="custom-section-title mb-4">Содержание курса</h3>
           {course.is_subscribed || canEdit ? (
             course.sections?.length > 0 ? (
-              <Accordion defaultActiveKey="0" style={{ position: 'relative', zIndex: 1 }}>
+              <div className="course-modules-container">
                 {course.sections
                   .filter((s) => {
                     // Both teachers and students see all published sections
@@ -273,8 +273,10 @@ const CourseDetailPage = () => {
                     const isSectionLocked = !canEdit && isContentLocked(section.publish_datetime);
 
                     return (
-                    <Accordion.Item key={section.id} eventKey={String(index)} className="mb-3">
-                      <Accordion.Header>
+                    <div key={section.id} className="course-module-item">
+                      <Accordion defaultActiveKey={index === 0 ? "0" : ""} className="custom-card" style={{ border: 'none' }}>
+                        <Accordion.Item eventKey="0" style={{ border: 'none', background: 'transparent' }}>
+                          <Accordion.Header style={{ borderRadius: 'var(--radius-large)' }}>
                         <div className="d-flex align-items-center w-100">
                           {isSectionLocked && (
                             <i className="bi bi-lock-fill text-warning me-2"
@@ -556,11 +558,13 @@ const CourseDetailPage = () => {
                             );
                           })
                         )}
-                      </Accordion.Body>
-                    </Accordion.Item>
+                          </Accordion.Body>
+                        </Accordion.Item>
+                      </Accordion>
+                    </div>
                     );
                   })}
-              </Accordion>
+              </div>
             ) : (
               <p className="text-muted">Содержание курса пока не добавлено</p>
             )
