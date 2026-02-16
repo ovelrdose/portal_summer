@@ -211,12 +211,195 @@ export const coursesAPI = {
   getMySchedule: () => api.get('/my-schedule/'),
 };
 
-// Stats API
+// Stats API (Legacy - for AdminDashboard)
 export const statsAPI = {
-  getDashboard: () => api.get('/stats/dashboard/'),
-  getUsersByGrade: () => api.get('/stats/users-by-grade/'),
-  getPopularCourses: () => api.get('/stats/popular-courses/'),
-  getActiveUsers: () => api.get('/stats/active-users/'),
+  getDashboard: () => api.get('/core/dashboard/'),
+  getUsersByGrade: () => api.get('/core/users-by-grade/'),
+  getPopularCourses: () => api.get('/core/popular-courses/'),
+  getActiveUsers: () => api.get('/core/active-users/'),
+};
+
+// New Stats API (for StatisticsPage)
+export const newStatsAPI = {
+  // Global Statistics (Admin only)
+  getGlobalStats: async (dateFrom = null, dateTo = null) => {
+    const params = {};
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    const response = await api.get('/core/stats/global/', { params });
+    return response.data;
+  },
+
+  getTopActiveUsers: async (dateFrom = null, dateTo = null, limit = 10) => {
+    const params = { limit };
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    const response = await api.get('/core/stats/top-active-users/', { params });
+    return response.data;
+  },
+
+  getTopPopularCourses: async (limit = 10) => {
+    const response = await api.get('/core/stats/top-popular-courses/', { params: { limit } });
+    return response.data;
+  },
+
+  getUsersByRole: async (role = null, page = 1, pageSize = 20) => {
+    const params = { page, page_size: pageSize };
+    if (role) params.role = role;
+    const response = await api.get('/core/stats/users/', { params });
+    return response.data;
+  },
+
+  exportUsersCSV: (role = null) => {
+    const params = role ? { role } : {};
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${API_URL}/core/stats/users/export/${queryString ? '?' + queryString : ''}`;
+
+    // Create a temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `users_${role || 'all'}.csv`);
+
+    // Add authorization header via fetch
+    const token = localStorage.getItem('token');
+    fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `users_${role || 'all'}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(error => console.error('Error downloading CSV:', error));
+  },
+
+  exportActiveUsersCSV: (dateFrom = null, dateTo = null, limit = 10) => {
+    const params = { limit };
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${API_URL}/core/stats/top-active-users/export/${queryString ? '?' + queryString : ''}`;
+
+    // Download using fetch with authorization
+    const token = localStorage.getItem('token');
+    fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'active_users.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(error => console.error('Error downloading CSV:', error));
+  },
+
+  // Demographics Statistics
+  getUsersByGrade: async () => {
+    const response = await api.get('/core/stats/users-by-grade/');
+    return response.data;
+  },
+
+  getUsersGeography: async () => {
+    const response = await api.get('/core/stats/users-geography/');
+    return response.data;
+  },
+
+  exportUsersByGradeCSV: () => {
+    const url = `${API_URL}/core/stats/users-by-grade/export/`;
+
+    const token = localStorage.getItem('token');
+    fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'users_by_grade.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(error => console.error('Error downloading CSV:', error));
+  },
+
+  exportUsersGeographyCSV: () => {
+    const url = `${API_URL}/core/stats/users-geography/export/`;
+
+    const token = localStorage.getItem('token');
+    fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'users_geography.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(error => console.error('Error downloading CSV:', error));
+  },
+
+  // Course Statistics (Admin and Teachers)
+  getCoursesForStats: async () => {
+    const response = await api.get('/core/stats/courses/');
+    return response.data;
+  },
+
+  getCourseStats: async (courseId) => {
+    const response = await api.get(`/core/stats/courses/${courseId}/`);
+    return response.data;
+  },
+
+  exportCourseStatsCSV: (courseId) => {
+    const url = `${API_URL}/core/stats/courses/${courseId}/export/`;
+
+    // Download using fetch with authorization
+    const token = localStorage.getItem('token');
+    fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `course_${courseId}_stats.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(error => console.error('Error downloading CSV:', error));
+  },
 };
 
 export default api;

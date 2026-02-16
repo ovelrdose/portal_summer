@@ -46,13 +46,18 @@ const Navbar = () => {
                       Создать курс
                     </Dropdown.Item>
                   )}
-                  {isAdmin && (
+                  {(isAdmin || isTeacher) && (
                     <>
                       <Dropdown.Divider />
-                      <Dropdown.Item as={Link} to="/admin">
-                        Админ-панель
+                      <Dropdown.Item as={Link} to="/statistics">
+                        Статистика
                       </Dropdown.Item>
                     </>
+                  )}
+                  {isAdmin && (
+                    <Dropdown.Item as={Link} to="/admin">
+                      Админ-панель
+                    </Dropdown.Item>
                   )}
                   <Dropdown.Divider />
                   <Dropdown.Item onClick={handleLogout}>

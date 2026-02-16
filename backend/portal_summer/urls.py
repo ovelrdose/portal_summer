@@ -18,7 +18,7 @@ urlpatterns = [
     path('api/news/', include('apps.news.urls')),
     path('api/gallery/', include('apps.gallery.urls')),
     path('api/', include('apps.courses.urls')),
-    path('api/stats/', include('apps.core.urls')),
+    path('api/core/', include('apps.core.urls')),
 
     # CKEditor
     path('ckeditor5/', include('django_ckeditor_5.urls')),

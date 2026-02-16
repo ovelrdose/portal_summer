@@ -30,6 +30,7 @@ import MySchedulePage from './pages/portal/MySchedulePage';
 
 // Admin/Teacher pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import StatisticsPage from './pages/admin/StatisticsPage';
 import CourseEditor from './pages/admin/CourseEditor';
 import HomeworkReviewPage from './pages/admin/HomeworkReviewPage';
 import NewsEditor from './pages/admin/NewsEditor';
@@ -169,6 +170,14 @@ function App() {
             element={
               <ProtectedRoute requireAdmin>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/statistics"
+            element={
+              <ProtectedRoute requireTeacher>
+                <StatisticsPage />
               </ProtectedRoute>
             }
           />
