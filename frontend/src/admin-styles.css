@@ -1,0 +1,341 @@
+/* ===== ADMIN / BOOTSTRAP DESIGN OVERRIDES =====
+   Приводит Bootstrap-компоненты к стилю дизайн-системы портала.
+   Импортируется глобально, поэтому работает и в редакторах, и в модалках.
+   ================================================ */
+
+/* ─── КНОПКИ ─────────────────────────────────── */
+
+.btn {
+  border-radius: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+}
+
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+/* Primary */
+.btn-primary {
+  background-color: #007BFF;
+  border-color: #007BFF;
+  border-width: 2px;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #0056b3;
+  border-color: #0056b3;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.28);
+}
+
+/* Success */
+.btn-success {
+  border-width: 2px;
+}
+.btn-success:hover {
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);
+}
+
+/* Danger */
+.btn-danger {
+  border-width: 2px;
+}
+.btn-danger:hover {
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+}
+
+/* Info */
+.btn-info {
+  border-width: 2px;
+}
+
+/* Secondary */
+.btn-secondary {
+  border-width: 2px;
+}
+
+/* Outline variants */
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-danger,
+.btn-outline-success,
+.btn-outline-info,
+.btn-outline-warning {
+  border-radius: 20px;
+  border-width: 2px;
+  font-weight: 500;
+}
+
+/* Small size */
+.btn-sm {
+  border-radius: 14px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+/* Large size */
+.btn-lg {
+  border-radius: 25px;
+}
+
+/* Группа кнопок — убираем квадратные края */
+.btn-group .btn:first-child {
+  border-radius: 20px 0 0 20px;
+}
+.btn-group .btn:last-child {
+  border-radius: 0 20px 20px 0;
+}
+.btn-group .btn:not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+
+/* ─── КАРТОЧКИ ───────────────────────────────── */
+
+.card {
+  border: 2px solid #007BFF;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  transition: box-shadow 0.2s ease;
+}
+
+.card-header {
+  background-color: #f0f7ff;
+  border-bottom: 2px solid #007BFF;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.9rem 1.25rem;
+  color: #1a1a2e;
+}
+
+.card-footer {
+  border-top: 1px solid #d0e8ff;
+  background-color: #f8fbff;
+}
+
+/* ─── ФОРМ-ЭЛЕМЕНТЫ ──────────────────────────── */
+
+.form-control,
+.form-select {
+  border-radius: 15px;
+  border: 2px solid #DEE2E6;
+  padding: 0.65rem 1rem;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #007BFF;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+.form-label {
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Textarea */
+textarea.form-control {
+  border-radius: 15px;
+}
+
+/* Input group */
+.input-group > .form-control,
+.input-group > .form-select {
+  border-radius: 0;
+}
+.input-group > .form-control:first-child,
+.input-group > .form-select:first-child {
+  border-radius: 15px 0 0 15px;
+}
+.input-group > .form-control:last-child,
+.input-group > .form-select:last-child {
+  border-radius: 0 15px 15px 0;
+}
+.input-group > .btn {
+  border-radius: 0 15px 15px 0;
+}
+
+/* Checkbox / Switch */
+.form-check-input:checked {
+  background-color: #007BFF;
+  border-color: #007BFF;
+}
+
+/* ─── МОДАЛЬНЫЕ ОКНА ─────────────────────────── */
+
+.modal-content {
+  border-radius: 24px;
+  border: 2px solid #007BFF;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  background-color: #f0f7ff;
+  border-bottom: 2px solid #007BFF;
+  padding: 1.1rem 1.5rem;
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #1a1a2e;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  border-top: 1px solid #d0e8ff;
+  padding: 1rem 1.5rem;
+  background-color: #f8fbff;
+}
+
+/* ─── ТАБЛИЦЫ ────────────────────────────────── */
+
+.table {
+  font-family: 'Inter', sans-serif;
+}
+
+.table thead th {
+  background-color: #f0f7ff;
+  border-bottom: 2px solid #007BFF;
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 0.9rem;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.table tbody tr:hover {
+  background-color: #f5f9ff;
+}
+
+.table td {
+  vertical-align: middle;
+  padding: 0.65rem 0.9rem;
+}
+
+/* ─── БЕЙДЖИ ─────────────────────────────────── */
+
+.badge {
+  border-radius: 10px;
+  padding: 0.38rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ─── АЛЕРТЫ ─────────────────────────────────── */
+
+.alert {
+  border-radius: 15px;
+  border-width: 2px;
+  font-weight: 500;
+}
+
+/* ─── АККОРДЕОН ──────────────────────────────── */
+
+.accordion-item {
+  border-radius: 15px;
+  margin-bottom: 8px;
+  border: 1px solid #d0e8ff;
+  overflow: hidden;
+}
+
+.accordion-item:first-of-type,
+.accordion-item:last-of-type {
+  border-radius: 15px;
+}
+
+.accordion-button {
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #f0f7ff;
+  color: #007BFF;
+  box-shadow: none;
+}
+
+.accordion-button:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+/* ─── LIST GROUP ─────────────────────────────── */
+
+.list-group-item {
+  border-color: #d0e8ff;
+  font-family: 'Inter', sans-serif;
+}
+
+.list-group-item:first-child {
+  border-radius: 12px 12px 0 0;
+}
+.list-group-item:last-child {
+  border-radius: 0 0 12px 12px;
+}
+
+/* ─── PAGINATION ─────────────────────────────── */
+
+.page-link {
+  border-radius: 10px;
+  margin: 0 2px;
+  border-color: #d0e8ff;
+  color: #007BFF;
+  font-weight: 500;
+}
+
+.page-item.active .page-link {
+  background-color: #007BFF;
+  border-color: #007BFF;
+}
+
+/* ─── СПИННЕР ────────────────────────────────── */
+
+.spinner-border {
+  color: #007BFF;
+}
+
+/* ─── БЛОК-РЕДАКТОР: стили кнопок и интерфейса ── */
+
+/* Кнопки режима редактора / предпросмотра */
+.block-editor .btn-group .btn {
+  font-weight: 600;
+}
+
+/* Кнопки в тулбаре редактора */
+.editor-toolbar button {
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* ─── ПРЕДПРОСМОТР РЕДАКТОРА ─────────────────── */
+
+/* Обёртка, которая имитирует реальную страницу контента */
+.editor-preview-container {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  margin-top: 0;
+  min-height: 300px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e0eeff;
+}
+
+@media (max-width: 768px) {
+  .editor-preview-container {
+    padding: 1.25rem 1rem;
+  }
+}

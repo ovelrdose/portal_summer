@@ -301,6 +301,10 @@ const NewsEditor = () => {
 
   return (
     <Container className="py-5">
+      <Link to="/news" className="back-link mb-3 d-inline-flex">
+        <span className="back-arrow">←</span>
+        Назад к новостям
+      </Link>
       <h1 className="mb-4">{isEdit ? 'Редактирование новости' : 'Создание новости'}</h1>
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}

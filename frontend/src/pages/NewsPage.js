@@ -196,7 +196,7 @@ const NewsPage = () => {
                       </Button>
                       {isAdmin && (
                         <Button
-                          className="btn-custom-outline btn-sm-custom"
+                          className="btn-custom-primary btn-sm-custom"
                           as={Link}
                           to={`/admin/news/${item.id}/edit`}
                         >

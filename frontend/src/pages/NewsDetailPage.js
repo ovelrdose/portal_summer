@@ -97,12 +97,9 @@ const NewsDetailPage = () => {
       <BlobClipDef />
       {/* Навигация */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <Link
-          to="/news"
-          className="d-flex align-items-center gap-2 text-dark text-decoration-none fw-medium"
-          style={{ fontSize: '0.95rem' }}
-        >
-          <span style={{ fontSize: '1.1rem' }}>←</span> Назад к новостям
+        <Link to="/news" className="back-link">
+          <span className="back-arrow">←</span>
+          Назад к новостям
         </Link>
         {isAdmin && (
           <Button

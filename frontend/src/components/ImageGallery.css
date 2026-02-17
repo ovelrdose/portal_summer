@@ -1,24 +1,24 @@
 /* Image Gallery Styles */
 
 .image-gallery {
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
 }
 
 /* Main Image Container */
 .gallery-main-container {
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.13);
+  background-color: #e9ecef;
+  position: relative;
 }
 
 .gallery-main-image {
   display: block;
-  max-height: 600px;
   width: 100%;
-  object-fit: contain;
-  background-color: #000;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
 }
 
 /* Navigation Buttons */
@@ -27,111 +27,119 @@
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
+  width: 44px;
+  height: 44px;
+  border-radius: 50% !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-  font-size: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.42) !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 1.15rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  padding: 0 !important;
 }
 
-.gallery-nav-btn:hover {
+.gallery-main-container:hover .gallery-nav-btn {
   opacity: 1;
 }
 
+.gallery-nav-btn:hover {
+  background-color: rgba(0, 0, 0, 0.68) !important;
+  transform: translateY(-50%) scale(1.07);
+}
+
 .gallery-nav-prev {
-  left: 15px;
+  left: 14px;
 }
 
 .gallery-nav-next {
-  right: 15px;
+  right: 14px;
 }
 
 /* Counter */
 .gallery-counter {
   position: absolute;
-  bottom: 15px;
-  right: 15px;
-  background-color: rgba(0, 0, 0, 0.7);
+  bottom: 14px;
+  right: 14px;
+  background-color: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(6px);
   color: #fff;
-  padding: 8px 16px;
+  padding: 4px 11px;
   border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
   z-index: 10;
 }
 
 /* Caption */
 .gallery-caption {
   position: absolute;
-  bottom: 15px;
-  left: 15px;
-  right: 80px;
-  background-color: rgba(0, 0, 0, 0.7);
+  bottom: 14px;
+  left: 14px;
+  right: 68px;
+  background-color: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(8px);
   color: #fff;
-  padding: 10px 15px;
-  border-radius: 4px;
-  font-size: 0.95rem;
+  padding: 7px 13px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.4;
   z-index: 10;
 }
 
 /* Thumbnails */
 .gallery-thumbnails-wrapper {
   overflow: hidden;
+  margin-top: 10px;
 }
 
 .gallery-thumbnails {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 10px 0;
+  padding: 3px 2px 6px;
   scroll-behavior: smooth;
 }
 
-/* Hide scrollbar but keep functionality */
 .gallery-thumbnails::-webkit-scrollbar {
-  height: 6px;
+  height: 4px;
 }
 
 .gallery-thumbnails::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
+  background: transparent;
 }
 
 .gallery-thumbnails::-webkit-scrollbar-thumb {
-  background: #888;
+  background: #c8ccd0;
   border-radius: 10px;
-}
-
-.gallery-thumbnails::-webkit-scrollbar-thumb:hover {
-  background: #555;
 }
 
 .gallery-thumbnail {
   flex-shrink: 0;
-  width: 120px;
-  height: 80px;
-  border-radius: 6px;
+  width: 96px;
+  height: 64px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  border: 3px solid transparent;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2.5px solid transparent;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.09);
 }
 
 .gallery-thumbnail:hover {
-  border-color: #0d6efd;
+  border-color: #007BFF;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
 .gallery-thumbnail.active {
-  border-color: #0d6efd;
-  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.4);
+  border-color: #007BFF;
+  box-shadow: 0 0 0 1px #007BFF, 0 4px 12px rgba(13, 110, 253, 0.28);
 }
 
 .gallery-thumbnail img {
@@ -140,70 +148,303 @@
   object-fit: cover;
 }
 
-/* Responsive Adjustments */
+/* ─── ALBUM PHOTO GRID ───────────────────────────────── */
+
+.album-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.album-photo-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 15px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #ddeeff;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.album-photo-item:hover {
+  border-color: #007BFF;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 123, 255, 0.18);
+}
+
+.album-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.album-photo-item:hover img {
+  transform: scale(1.05);
+}
+
+/* Тёмный оверлей при наведении */
+.album-photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.2s ease;
+  pointer-events: none;
+}
+
+.album-photo-item:hover .album-photo-overlay {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Кнопка удаления (появляется при наведении) */
+.album-photo-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+}
+
+.album-photo-item:hover .album-photo-delete {
+  opacity: 1;
+}
+
+.album-photo-delete .btn {
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  line-height: 1;
+}
+
+/* ─── ALBUM LIGHTBOX ─────────────────────────────────── */
+
+.album-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.93);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  /* плавное появление */
+  animation: lightboxFadeIn 0.2s ease;
+}
+
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.album-lightbox-inner {
+  position: relative;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 90vw;
+  max-height: 92vh;
+}
+
+.album-lightbox-img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  display: block;
+  /* плавное появление фото при смене */
+  animation: imgFadeIn 0.18s ease;
+}
+
+@keyframes imgFadeIn {
+  from { opacity: 0.4; transform: scale(0.97); }
+  to   { opacity: 1;   transform: scale(1); }
+}
+
+/* Кнопка закрытия */
+.album-lightbox-close {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  z-index: 10001;
+  line-height: 1;
+}
+
+.album-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Подпись и счётчик */
+.album-lightbox-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 14px;
+  width: 100%;
+  padding: 0 4px;
+  min-height: 28px;
+}
+
+.album-lightbox-caption {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  font-weight: 500;
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+}
+
+.album-lightbox-counter {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+}
+
+/* Навигационные стрелки */
+.album-lightbox-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  z-index: 10000;
+  user-select: none;
+  padding: 0;
+}
+
+.album-lightbox-prev { left: 20px; }
+.album-lightbox-next { right: 20px; }
+
+.album-lightbox-nav:hover {
+  background: rgba(0, 123, 255, 0.65);
+  border-color: rgba(0, 123, 255, 0.8);
+  transform: translateY(-50%) scale(1.08);
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────── */
+
+/* Responsive */
+@media (max-width: 992px) {
+  .album-photo-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .gallery-main-image {
-    max-height: 400px;
+    aspect-ratio: 4 / 3;
   }
 
   .gallery-nav-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-  }
-
-  .gallery-nav-prev {
-    left: 10px;
-  }
-
-  .gallery-nav-next {
-    right: 10px;
-  }
-
-  .gallery-counter {
-    font-size: 0.8rem;
-    padding: 6px 12px;
-    bottom: 10px;
-    right: 10px;
-  }
-
-  .gallery-caption {
-    font-size: 0.85rem;
-    padding: 8px 12px;
-    bottom: 10px;
-    left: 10px;
-    right: 70px;
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+    opacity: 0.85;
   }
 
   .gallery-thumbnail {
-    width: 90px;
-    height: 60px;
+    width: 76px;
+    height: 52px;
   }
 
-  /* Show fewer thumbnails on mobile */
-  .gallery-thumbnails {
-    gap: 8px;
+  /* Лайтбокс на планшете */
+  .album-lightbox-nav {
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+  }
+
+  .album-lightbox-prev { left: 10px; }
+  .album-lightbox-next { right: 10px; }
+
+  .album-lightbox-img {
+    border-radius: 10px;
   }
 }
 
 @media (max-width: 576px) {
-  .gallery-main-image {
-    max-height: 300px;
-  }
-
-  .gallery-nav-btn {
-    width: 35px;
-    height: 35px;
-    font-size: 1rem;
-  }
-
   .gallery-thumbnail {
-    width: 70px;
-    height: 50px;
+    width: 62px;
+    height: 42px;
+    border-radius: 8px;
   }
 
   .gallery-caption {
-    font-size: 0.75rem;
-    padding: 6px 10px;
+    font-size: 0.78rem;
+    padding: 5px 10px;
+  }
+
+  /* Сетка — 2 колонки на телефоне */
+  .album-photo-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  /* Лайтбокс на телефоне */
+  .album-lightbox-nav {
+    width: 38px;
+    height: 38px;
+    font-size: 1.3rem;
+  }
+
+  .album-lightbox-prev { left: 6px; }
+  .album-lightbox-next { right: 6px; }
+
+  .album-lightbox-close {
+    top: 12px;
+    right: 14px;
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+
+  .album-lightbox-img {
+    max-width: 96vw;
+    max-height: 70vh;
+    border-radius: 10px;
+  }
+
+  .album-lightbox-footer {
+    padding: 0 2px;
   }
 }

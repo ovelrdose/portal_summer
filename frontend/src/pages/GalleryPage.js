@@ -125,7 +125,7 @@ const GalleryPage = () => {
                       </Button>
                       {isAdmin && (
                         <Button
-                          className="btn-custom-outline btn-sm-custom"
+                          className="btn-custom-primary btn-sm-custom"
                           as={Link}
                           to={`/admin/albums/${album.id}/edit`}
                         >

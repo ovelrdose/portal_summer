@@ -647,6 +647,34 @@ body {
   opacity: 0.9;
 }
 
+/* ===== BACK LINK ANIMATION ===== */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #212529;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  color: #007BFF;
+  text-decoration: none;
+}
+
+.back-link .back-arrow {
+  display: inline-block;
+  font-size: 1.15rem;
+  line-height: 1;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.back-link:hover .back-arrow {
+  transform: translateX(-5px);
+}
+
 /* ===== RESPONSIVE ADJUSTMENTS ===== */
 @media (max-width: 768px) {
   .custom-navbar {

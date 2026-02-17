@@ -277,6 +277,10 @@ const AlbumEditor = () => {
 
   return (
     <Container className="py-5">
+      <Link to="/gallery" className="back-link mb-3 d-inline-flex">
+        <span className="back-arrow">←</span>
+        Назад к галерее
+      </Link>
       <h1 className="mb-4">{isEdit ? 'Редактирование альбома' : 'Создание альбома'}</h1>
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}

@@ -136,7 +136,9 @@ const BlockEditor = ({ blocks, sectionId, onBlocksChange, onSave, saving, upload
             />
           </>
         ) : (
-          <BlockPreview blocks={blocks} />
+          <div className="editor-preview-container">
+            <BlockPreview blocks={blocks} />
+          </div>
         )}
       </div>
     </DndProvider>
