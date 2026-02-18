@@ -118,7 +118,9 @@ const TextBlock = ({ data, onChange, sectionId, uploadImage }) => {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false, // configured separately below with custom settings
+      }),
       TextStyle,
       FontFamily.configure({
         types: ['textStyle'],

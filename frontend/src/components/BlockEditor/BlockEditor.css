@@ -47,13 +47,33 @@
 }
 
 .block-item.dragging {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: grabbing;
 }
 
-.block-item.drop-target {
-  border: 2px dashed #007bff;
-  background: #e7f3ff;
+/* Collapsed state — other items while a drag is in progress */
+.block-item.collapsed {
+  border-color: #e0e0e0;
+  box-shadow: none;
+  background: #fafafa;
+}
+
+.block-item.collapsed .block-item-header {
+  padding: 8px 15px;
+}
+
+/* Drag Overlay — compact card shown while dragging */
+.block-drag-overlay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 2px solid #007bff;
+  border-radius: 15px;
+  padding: 12px 15px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  cursor: grabbing;
+  width: 100%;
 }
 
 .block-item-header {

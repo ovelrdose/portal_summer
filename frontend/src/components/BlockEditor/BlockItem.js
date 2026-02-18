@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { useDrag, useDrop } from 'react-dnd';
+import React, { useState } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Badge, Button, Form, Collapse } from 'react-bootstrap';
 import TextBlock from './blocks/TextBlock';
 import VideoBlock from './blocks/VideoBlock';
@@ -9,47 +10,22 @@ import LinkBlock from './blocks/LinkBlock';
 import HomeworkBlock from './blocks/HomeworkBlock';
 import { formatDateTimeLocal, dateTimeLocalToISO } from '../../utils/dateUtils';
 
-const ITEM_TYPE = 'BLOCK';
-
-const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, uploadImage }) => {
-  const ref = useRef(null);
+const BlockItem = ({ block, onUpdate, onDelete, sectionId, uploadImage, isDraggingAny }) => {
   const [showSettings, setShowSettings] = useState(false);
 
-  const [{ isDragging }, drag] = useDrag({
-    type: ITEM_TYPE,
-    item: { index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
 
-  const [{ isOver }, drop] = useDrop({
-    accept: ITEM_TYPE,
-    hover: (item, monitor) => {
-      if (!ref.current) return;
-
-      const dragIndex = item.index;
-      const hoverIndex = index;
-
-      if (dragIndex === hoverIndex) return;
-
-      const hoverBoundingRect = ref.current.getBoundingClientRect();
-      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      const clientOffset = monitor.getClientOffset();
-      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
-
-      onMove(dragIndex, hoverIndex);
-      item.index = hoverIndex;
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  });
-
-  drag(drop(ref));
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const getBlockTypeLabel = (type) => {
     const labels = {
@@ -135,13 +111,27 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
     }
   };
 
+  // Collapse all blocks (including the ghost placeholder) when any drag is active.
+  // @dnd-kit re-measures heights on every render (MeasuringStrategy.Always),
+  // so the sorting transitions are calculated using the compact heights — no jank.
+  const isCollapsed = isDraggingAny;
+
   return (
     <div
-      ref={ref}
-      className={`block-item ${isDragging ? 'dragging' : ''} ${isOver ? 'drop-target' : ''}`}
+      ref={setNodeRef}
+      style={style}
+      className={`block-item ${isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''}`}
     >
       <div className="block-item-header">
-        <div className="drag-handle" title="Перетащите для изменения порядка">
+        {/* attributes + listeners are placed only on the handle so that
+            inputs, buttons and editors inside the block still receive
+            normal pointer/keyboard events. */}
+        <div
+          className="drag-handle"
+          title="Перетащите для изменения порядка"
+          {...attributes}
+          {...listeners}
+        >
           ☰
         </div>
         <Badge bg={getBlockTypeBadgeVariant(block.type)} className="block-type-badge">
@@ -173,7 +163,7 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
         </div>
       </div>
 
-      <Collapse in={showSettings}>
+      <Collapse in={showSettings && !isCollapsed}>
         <div className="block-item-settings p-3 bg-light border-bottom">
           <Form.Group className="mb-2">
             <Form.Label className="small mb-1">Заголовок блока (опционально)</Form.Label>
@@ -200,7 +190,7 @@ const BlockItem = ({ block, index, onUpdate, onDelete, onMove, sectionId, upload
         </div>
       </Collapse>
 
-      <div className="block-item-content">
+      <div className="block-item-content" style={isCollapsed ? { display: 'none' } : undefined}>
         {renderBlockContent()}
       </div>
     </div>

@@ -45,6 +45,9 @@ const Navbar = () => {
             {isAuthenticated ? (
               <Dropdown align="end">
                 <Dropdown.Toggle className="custom-dropdown-toggle" id="user-dropdown">
+                  <span className="user-avatar-icon">
+                    <i className="bi bi-person-fill"></i>
+                  </span>
                   {user?.first_name || 'Профиль'}
                 </Dropdown.Toggle>
                 <Dropdown.Menu>

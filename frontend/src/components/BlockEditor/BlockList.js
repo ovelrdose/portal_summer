@@ -1,7 +1,7 @@
 import React from 'react';
 import BlockItem from './BlockItem';
 
-const BlockList = ({ blocks, onUpdate, onDelete, onMove, sectionId, uploadImage }) => {
+const BlockList = ({ blocks, onUpdate, onDelete, sectionId, uploadImage, isDraggingAny }) => {
   if (!blocks || blocks.length === 0) {
     return (
       <div className="empty-state">
@@ -14,16 +14,15 @@ const BlockList = ({ blocks, onUpdate, onDelete, onMove, sectionId, uploadImage 
 
   return (
     <div className="block-list">
-      {blocks.map((block, index) => (
+      {blocks.map((block) => (
         <BlockItem
           key={block.id}
           block={block}
-          index={index}
           onUpdate={onUpdate}
           onDelete={onDelete}
-          onMove={onMove}
           sectionId={sectionId}
           uploadImage={uploadImage}
+          isDraggingAny={isDraggingAny}
         />
       ))}
     </div>

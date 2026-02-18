@@ -24,6 +24,7 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 // Protected pages
 import PortalPage from './pages/portal/PortalPage';
 import CoursesPage from './pages/portal/CoursesPage';
+import MyCoursesPage from './pages/portal/MyCoursesPage';
 import CourseDetailPage from './pages/portal/CourseDetailPage';
 import ProfilePage from './pages/portal/ProfilePage';
 import MySchedulePage from './pages/portal/MySchedulePage';
@@ -136,6 +137,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CoursesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portal/my-courses"
+            element={
+              <ProtectedRoute>
+                <MyCoursesPage />
               </ProtectedRoute>
             }
           />

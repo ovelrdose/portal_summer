@@ -1,8 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Spinner, Form, Badge, Tabs, Tab, Toast, ToastContainer, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Button, Spinner, Form, Badge, Tabs, Tab, Toast, ToastContainer, Modal } from 'react-bootstrap';
 import { coursesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+
+const CourseCard = ({ course, onSubscribe, onUnsubscribe, subscribingId, isDraft }) => (
+  <div className="custom-card custom-card-horizontal">
+    <div className="card-content">
+      <div>
+        <h3 className="custom-card-title">
+          {course.title}
+          {isDraft && (
+            <Badge bg="warning" text="dark" className="ms-2">Черновик</Badge>
+          )}
+        </h3>
+        <p className="custom-card-text">{course.short_description}</p>
+        <div className="d-flex align-items-center gap-3 flex-wrap">
+          <span className="custom-badge">Автор: {course.creator?.full_name}</span>
+          <small className="text-muted">{course.subscribers_count} подписчиков</small>
+        </div>
+      </div>
+      <div className="d-flex gap-2 mt-3 flex-wrap">
+        <Link
+          to={`/portal/courses/${course.id}`}
+          className="btn btn-custom-primary btn-sm-custom"
+        >
+          {isDraft ? 'Редактировать' : 'Подробнее'}
+        </Link>
+        {!isDraft && (
+          course.is_subscribed ? (
+            <Button
+              className="btn-custom-outline btn-sm-custom"
+              onClick={() => onUnsubscribe(course)}
+              disabled={subscribingId === course.id}
+              style={{ borderColor: '#dc3545', color: '#dc3545' }}
+            >
+              {subscribingId === course.id ? (
+                <><Spinner animation="border" size="sm" className="me-2" />Отписка...</>
+              ) : 'Отписаться'}
+            </Button>
+          ) : (
+            <Button
+              className="btn-custom-cyan btn-sm-custom"
+              onClick={() => onSubscribe(course.id)}
+              disabled={subscribingId === course.id}
+            >
+              {subscribingId === course.id ? (
+                <><Spinner animation="border" size="sm" className="me-2" />Подписка...</>
+              ) : 'Записаться'}
+            </Button>
+          )
+        )}
+      </div>
+    </div>
+    <div className="card-image">
+      <img src={course.image_url} alt={course.title} />
+    </div>
+  </div>
+);
+
+const CourseList = ({ courses, onSubscribe, onUnsubscribe, subscribingId, isDraft, emptyText }) => (
+  <div className="d-flex flex-column gap-3">
+    {courses.length > 0 ? (
+      courses.map((course) => (
+        <CourseCard
+          key={course.id}
+          course={course}
+          onSubscribe={onSubscribe}
+          onUnsubscribe={onUnsubscribe}
+          subscribingId={subscribingId}
+          isDraft={isDraft}
+        />
+      ))
+    ) : (
+      <p className="text-center text-muted py-4">{emptyText}</p>
+    )}
+  </div>
+);
 
 const CoursesPage = () => {
   const { isTeacher, isAdmin } = useAuth();
@@ -85,9 +159,21 @@ const CoursesPage = () => {
     }
   };
 
+  const canManage = isTeacher || isAdmin;
+  const hasDrafts = canManage && drafts.length > 0;
+
   return (
     <Container className="py-5">
-      <h1 className="custom-section-title mb-4">Все курсы</h1>
+
+      {/* Header */}
+      <div className="custom-section-header mb-4">
+        <h1 className="custom-section-title">Все курсы</h1>
+        {canManage && (
+          <Link to="/admin/courses/new" className="btn btn-custom-primary btn-sm-custom">
+            + Новый курс
+          </Link>
+        )}
+      </div>
 
       {/* Search */}
       <Row className="mb-4">
@@ -105,181 +191,33 @@ const CoursesPage = () => {
         <div className="text-center py-5">
           <Spinner animation="border" />
         </div>
+      ) : hasDrafts ? (
+        <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
+          <Tab eventKey="all" title="Все курсы">
+            <CourseList
+              courses={courses}
+              onSubscribe={handleSubscribe}
+              onUnsubscribe={openUnsubscribeModal}
+              subscribingId={subscribingId}
+              emptyText="Курсы не найдены"
+            />
+          </Tab>
+          <Tab eventKey="drafts" title={`Черновики (${drafts.length})`}>
+            <CourseList
+              courses={drafts}
+              isDraft
+              emptyText="Черновиков нет"
+            />
+          </Tab>
+        </Tabs>
       ) : (
-        <>
-          {(isTeacher || isAdmin) && drafts.length > 0 ? (
-            <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
-              <Tab eventKey="all" title="Все курсы">
-                <Row className="g-4">
-                  {courses.length > 0 ? (
-                    courses.map((course) => (
-                      <Col md={12} key={course.id}>
-                        <Card className="custom-card custom-card-horizontal">
-                          <div className="card-content">
-                            <div>
-                              <h3 className="custom-card-title">{course.title}</h3>
-                              <p className="custom-card-text">{course.short_description}</p>
-                              <div className="d-flex align-items-center gap-3 mb-2">
-                                <Badge className="custom-badge">
-                                  Автор: {course.creator?.full_name}
-                                </Badge>
-                                <small className="text-muted">{course.subscribers_count} подписчиков</small>
-                              </div>
-                            </div>
-                            <div className="d-flex gap-2">
-                              <Button className="btn-custom-primary btn-sm-custom" as={Link} to={`/portal/courses/${course.id}`}>
-                                Подробнее
-                              </Button>
-                              {course.is_subscribed ? (
-                                <Button
-                                  className="btn-custom-outline btn-sm-custom"
-                                  onClick={() => openUnsubscribeModal(course)}
-                                  disabled={subscribingId === course.id}
-                                  style={{ borderColor: '#dc3545', color: '#dc3545' }}
-                                >
-                                  {subscribingId === course.id ? (
-                                    <>
-                                      <Spinner animation="border" size="sm" className="me-2" />
-                                      Отписка...
-                                    </>
-                                  ) : (
-                                    'Отписаться'
-                                  )}
-                                </Button>
-                              ) : (
-                                <Button
-                                  className="btn-custom-cyan btn-sm-custom"
-                                  onClick={() => handleSubscribe(course.id)}
-                                  disabled={subscribingId === course.id}
-                                >
-                                  {subscribingId === course.id ? (
-                                    <>
-                                      <Spinner animation="border" size="sm" className="me-2" />
-                                      Подписка...
-                                    </>
-                                  ) : (
-                                    'Записаться'
-                                  )}
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                          <div className="card-image">
-                            <img src={course.thumbnail_url || course.image_url} alt={course.title} />
-                          </div>
-                        </Card>
-                      </Col>
-                    ))
-                  ) : (
-                    <Col>
-                      <p className="text-center text-muted">Курсы не найдены</p>
-                    </Col>
-                  )}
-                </Row>
-              </Tab>
-              <Tab eventKey="drafts" title={`Черновики (${drafts.length})`}>
-                <Row className="g-4">
-                  {drafts.map((course) => (
-                    <Col md={12} key={course.id}>
-                      <Card className="custom-card custom-card-horizontal">
-                        <div className="card-content">
-                          <div>
-                            <h3 className="custom-card-title">
-                              {course.title}
-                              <Badge bg="warning" text="dark" className="ms-2">Черновик</Badge>
-                            </h3>
-                            <p className="custom-card-text">{course.short_description}</p>
-                            <div className="d-flex align-items-center gap-3 mb-2">
-                              <Badge className="custom-badge">
-                                Автор: {course.creator?.full_name}
-                              </Badge>
-                              <small className="text-muted">{course.subscribers_count} подписчиков</small>
-                            </div>
-                          </div>
-                          <div>
-                            <Button className="btn-custom-primary btn-sm-custom" as={Link} to={`/portal/courses/${course.id}`}>
-                              Редактировать
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="card-image">
-                          <img src={course.thumbnail_url || course.image_url} alt={course.title} />
-                        </div>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </Tab>
-            </Tabs>
-          ) : (
-            <Row className="g-4">
-              {courses.length > 0 ? (
-                courses.map((course) => (
-                  <Col md={12} key={course.id}>
-                    <Card className="custom-card custom-card-horizontal">
-                      <div className="card-content">
-                        <div>
-                          <h3 className="custom-card-title">{course.title}</h3>
-                          <p className="custom-card-text">{course.short_description}</p>
-                          <div className="d-flex align-items-center gap-3 mb-2">
-                            <Badge className="custom-badge">
-                              Автор: {course.creator?.full_name}
-                            </Badge>
-                            <small className="text-muted">{course.subscribers_count} подписчиков</small>
-                          </div>
-                        </div>
-                        <div className="d-flex gap-2">
-                          <Button className="btn-custom-primary btn-sm-custom" as={Link} to={`/portal/courses/${course.id}`}>
-                            Подробнее
-                          </Button>
-                          {course.is_subscribed ? (
-                            <Button
-                              className="btn-custom-outline btn-sm-custom"
-                              onClick={() => openUnsubscribeModal(course)}
-                              disabled={subscribingId === course.id}
-                              style={{ borderColor: '#dc3545', color: '#dc3545' }}
-                            >
-                              {subscribingId === course.id ? (
-                                <>
-                                  <Spinner animation="border" size="sm" className="me-2" />
-                                  Отписка...
-                                </>
-                              ) : (
-                                'Отписаться'
-                              )}
-                            </Button>
-                          ) : (
-                            <Button
-                              className="btn-custom-cyan btn-sm-custom"
-                              onClick={() => handleSubscribe(course.id)}
-                              disabled={subscribingId === course.id}
-                            >
-                              {subscribingId === course.id ? (
-                                <>
-                                  <Spinner animation="border" size="sm" className="me-2" />
-                                  Подписка...
-                                </>
-                              ) : (
-                                'Записаться'
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="card-image">
-                        <img src={course.thumbnail_url || course.image_url} alt={course.title} />
-                      </div>
-                    </Card>
-                  </Col>
-                ))
-              ) : (
-                <Col>
-                  <p className="text-center text-muted">Курсы не найдены</p>
-                </Col>
-              )}
-            </Row>
-          )}
-        </>
+        <CourseList
+          courses={courses}
+          onSubscribe={handleSubscribe}
+          onUnsubscribe={openUnsubscribeModal}
+          subscribingId={subscribingId}
+          emptyText="Курсы не найдены"
+        />
       )}
 
       {/* Unsubscribe Confirmation Modal */}

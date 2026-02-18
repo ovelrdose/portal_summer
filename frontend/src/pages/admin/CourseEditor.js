@@ -19,14 +19,10 @@ const CourseEditor = () => {
     description: '',
     is_published: false,
     image_url: null,
-    thumbnail_url: null,
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [removeImage, setRemoveImage] = useState(false);
-  const [thumbnailFile, setThumbnailFile] = useState(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState(null);
-  const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -85,7 +81,6 @@ const CourseEditor = () => {
         description: data.description || '',
         is_published: data.is_published,
         image_url: data.image_url,
-        thumbnail_url: data.thumbnail_url,
       });
       setSections(data.sections || []);
 
@@ -139,25 +134,6 @@ const CourseEditor = () => {
     setRemoveImage(true);
   };
 
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setThumbnailFile(file);
-      setRemoveThumbnail(false);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setThumbnailPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveThumbnail = () => {
-    setThumbnailFile(null);
-    setThumbnailPreview(null);
-    setRemoveThumbnail(true);
-  };
-
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -179,13 +155,6 @@ const CourseEditor = () => {
         formData.append('image', '');
       }
 
-      // Добавляем thumbnail
-      if (thumbnailFile) {
-        formData.append('thumbnail', thumbnailFile);
-      } else if (removeThumbnail) {
-        formData.append('thumbnail', '');
-      }
-
       if (isEdit) {
         await coursesAPI.updateCourse(id, formData);
         setSuccess('Курс сохранен');
@@ -193,9 +162,6 @@ const CourseEditor = () => {
         setImageFile(null);
         setImagePreview(null);
         setRemoveImage(false);
-        setThumbnailFile(null);
-        setThumbnailPreview(null);
-        setRemoveThumbnail(false);
         loadCourse(); // Перезагружаем для обновления изображения
       } else {
         const response = await coursesAPI.createCourse(formData);
@@ -441,36 +407,6 @@ const CourseEditor = () => {
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Миниатюра для карточек (необязательно)</Form.Label>
-                  <Form.Text className="text-muted d-block mb-2">
-                    Используется в списках курсов. Рекомендуемый размер: 800x200 px (4:1).
-                    Если не указана, будет использоваться обложка.
-                  </Form.Text>
-                  {(thumbnailPreview || (course.thumbnail_url && !removeThumbnail)) && (
-                    <div className="mb-2">
-                      <img
-                        src={thumbnailPreview || course.thumbnail_url}
-                        alt="Миниатюра курса"
-                        style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'cover' }}
-                        className="img-thumbnail d-block mb-2"
-                      />
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={handleRemoveThumbnail}
-                      >
-                        Удалить миниатюру
-                      </Button>
-                    </div>
-                  )}
-                  <Form.Control
-                    type="file"
-                    accept="image/*"
-                    onChange={handleThumbnailChange}
                   />
                 </Form.Group>
 
