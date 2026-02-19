@@ -72,7 +72,9 @@ const PortalPage = () => {
           aria-expanded={myCoursesOpen}
         >
           Мои курсы
-          <span className={`chevron ${myCoursesOpen ? 'open' : 'closed'}`}>&#8964;</span>
+          <span className={`module-chevron ${myCoursesOpen ? 'open' : 'closed'}`}>
+            <i className="bi bi-chevron-right"></i>
+          </span>
         </div>
 
         <Collapse in={myCoursesOpen}>
@@ -132,7 +134,9 @@ const PortalPage = () => {
           aria-expanded={latestCoursesOpen}
         >
           Новые курсы
-          <span className={`chevron ${latestCoursesOpen ? 'open' : 'closed'}`}>&#8964;</span>
+          <span className={`module-chevron ${latestCoursesOpen ? 'open' : 'closed'}`}>
+            <i className="bi bi-chevron-right"></i>
+          </span>
         </div>
 
         <Collapse in={latestCoursesOpen}>

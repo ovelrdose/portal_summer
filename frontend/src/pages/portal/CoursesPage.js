@@ -30,10 +30,9 @@ const CourseCard = ({ course, onSubscribe, onUnsubscribe, subscribingId, isDraft
         {!isDraft && (
           course.is_subscribed ? (
             <Button
-              className="btn-custom-outline btn-sm-custom"
+              className="btn-custom-outline-danger btn-sm-custom"
               onClick={() => onUnsubscribe(course)}
               disabled={subscribingId === course.id}
-              style={{ borderColor: '#dc3545', color: '#dc3545' }}
             >
               {subscribingId === course.id ? (
                 <><Spinner animation="border" size="sm" className="me-2" />Отписка...</>

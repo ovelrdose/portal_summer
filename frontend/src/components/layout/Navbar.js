@@ -16,7 +16,7 @@ const Navbar = () => {
     <Container style={{ paddingTop: '1rem', paddingBottom: '1rem' }}>
       <BsNavbar expand="lg" className="custom-navbar">
         <BsNavbar.Brand as={Link} to="/" className="handwriting">
-          Портал курсов
+          Школа превосходства
         </BsNavbar.Brand>
         <BsNavbar.Toggle aria-controls="navbar-nav" />
         <BsNavbar.Collapse id="navbar-nav">
