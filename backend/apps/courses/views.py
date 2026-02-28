@@ -697,6 +697,60 @@ class ContentElementViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['post'],
+        url_path='upload_task_file',
+        parser_classes=[MultiPartParser, FormParser],
+        permission_classes=[IsCourseOwnerOrAdmin]
+    )
+    def upload_task_file(self, request):
+        """
+        Загружает файл задания для домашней работы.
+
+        Допустимые типы: pdf, doc, docx, xls, xlsx, ppt, pptx, txt, zip, rar
+        Максимальный размер: 50 МБ
+
+        Returns:
+            {"url": "/media/courses/homework_tasks/file.pdf", "filename": "file.pdf"}
+        """
+        if 'file' not in request.FILES:
+            return Response(
+                {'error': 'Файл не предоставлен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        task_file = request.FILES['file']
+
+        allowed_extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar']
+        file_extension = task_file.name.split('.')[-1].lower()
+
+        if file_extension not in allowed_extensions:
+            return Response(
+                {'error': f'Недопустимый тип файла. Разрешены: {", ".join(allowed_extensions)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        max_size = 50 * 1024 * 1024  # 50 МБ
+        if task_file.size > max_size:
+            return Response(
+                {'error': 'Размер файла превышает 50 МБ'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        file_path = os.path.join('courses/homework_tasks/', task_file.name)
+        saved_path = default_storage.save(file_path, task_file)
+        file_url = default_storage.url(saved_path)
+
+        if not file_url.startswith('http'):
+            base_url = request.build_absolute_uri('/')[:-1]
+            file_url = base_url + file_url
+
+        return Response({
+            'url': file_url,
+            'filename': task_file.name
+        }, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=False,
+        methods=['post'],
         permission_classes=[IsCourseOwnerOrAdmin]
     )
     def reorder(self, request):

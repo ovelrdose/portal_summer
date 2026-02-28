@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Button, Spinner, Form, Badge, Tabs, Tab, Toast, ToastContainer, Modal } from 'react-bootstrap';
-import { coursesAPI } from '../../services/api';
+import { coursesAPI, DEFAULT_COVER_URL } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 const CourseCard = ({ course, onSubscribe, onUnsubscribe, subscribingId, isDraft }) => (
@@ -53,7 +53,11 @@ const CourseCard = ({ course, onSubscribe, onUnsubscribe, subscribingId, isDraft
       </div>
     </div>
     <div className="card-image">
-      <img src={course.image_url} alt={course.title} />
+      <img
+        src={course.image_url || DEFAULT_COVER_URL}
+        alt={course.title}
+        onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+      />
     </div>
   </div>
 );

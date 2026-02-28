@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Spinner, Button, Badge, Nav } from 'react-bootstrap';
-import { galleryAPI } from '../services/api';
+import { galleryAPI, DEFAULT_COVER_URL } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const GalleryPage = () => {
@@ -135,30 +135,11 @@ const GalleryPage = () => {
                     </div>
                   </div>
                   <div className="card-image">
-                    {album.cover_url && !imageErrors[album.id] ? (
-                      <img
-                        src={album.cover_url}
-                        alt={album.title}
-                        onError={() => setImageErrors(prev => ({ ...prev, [album.id]: true }))}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          height: '100%',
-                          backgroundColor: '#e9ecef',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#6c757d',
-                          fontSize: '4rem'
-                        }}
-                      >
-                        <div className="text-center">
-                          <div>🖼️</div>
-                          <p className="mb-0 mt-2" style={{ fontSize: '0.875rem' }}>Нет обложки</p>
-                        </div>
-                      </div>
-                    )}
+                    <img
+                      src={album.cover_url || DEFAULT_COVER_URL}
+                      alt={album.title}
+                      onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+                    />
                   </div>
                 </Card>
               </Col>

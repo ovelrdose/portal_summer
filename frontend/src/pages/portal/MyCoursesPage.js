@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Form, Spinner, Badge } from 'react-bootstrap';
-import { coursesAPI } from '../../services/api';
+import { coursesAPI, DEFAULT_COVER_URL } from '../../services/api';
 
 const MyCoursesPage = () => {
   const [courses, setCourses] = useState([]);
@@ -73,7 +73,11 @@ const MyCoursesPage = () => {
                 </div>
               </div>
               <div className="card-image">
-                <img src={course.image_url} alt={course.title} />
+                <img
+                  src={course.image_url || DEFAULT_COVER_URL}
+                  alt={course.title}
+                  onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+                />
               </div>
             </div>
           ))}

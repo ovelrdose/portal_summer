@@ -1,16 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { coursesAPI } from '../../../services/api';
 
 const HomeworkBlock = ({ data, onChange }) => {
   const [description, setDescription] = useState(data?.description || '');
   const [deadline, setDeadline] = useState(data?.deadline || '');
   const [allowedFormats, setAllowedFormats] = useState(data?.allowedFormats || []);
   const [maxFileSize, setMaxFileSize] = useState(data?.maxFileSize || 10);
+  const [taskFileUrl, setTaskFileUrl] = useState(data?.task_file_url || '');
+  const [taskFileName, setTaskFileName] = useState(data?.task_file_name || '');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     setDescription(data?.description || '');
     setDeadline(data?.deadline || '');
     setAllowedFormats(data?.allowedFormats || []);
     setMaxFileSize(data?.maxFileSize || 10);
+    setTaskFileUrl(data?.task_file_url || '');
+    setTaskFileName(data?.task_file_name || '');
   }, [data]);
 
   const fileFormats = [
@@ -22,51 +30,81 @@ const HomeworkBlock = ({ data, onChange }) => {
     { value: 'video', label: 'Видео (MP4, AVI)' },
   ];
 
-  const handleDescriptionChange = (e) => {
-    const newDescription = e.target.value;
-    setDescription(newDescription);
+  const notifyChange = (updates) => {
     onChange({
-      description: newDescription,
+      description,
       deadline,
       allowedFormats,
       maxFileSize,
+      task_file_url: taskFileUrl,
+      task_file_name: taskFileName,
+      ...updates,
     });
   };
 
+  const handleDescriptionChange = (e) => {
+    const val = e.target.value;
+    setDescription(val);
+    notifyChange({ description: val });
+  };
+
   const handleDeadlineChange = (e) => {
-    const newDeadline = e.target.value;
-    setDeadline(newDeadline);
-    onChange({
-      description,
-      deadline: newDeadline,
-      allowedFormats,
-      maxFileSize,
-    });
+    const val = e.target.value;
+    setDeadline(val);
+    notifyChange({ deadline: val });
   };
 
   const handleFormatToggle = (format) => {
     const newFormats = allowedFormats.includes(format)
       ? allowedFormats.filter((f) => f !== format)
       : [...allowedFormats, format];
-
     setAllowedFormats(newFormats);
-    onChange({
-      description,
-      deadline,
-      allowedFormats: newFormats,
-      maxFileSize,
-    });
+    notifyChange({ allowedFormats: newFormats });
   };
 
   const handleMaxFileSizeChange = (e) => {
-    const newSize = parseInt(e.target.value, 10);
-    setMaxFileSize(newSize);
-    onChange({
-      description,
-      deadline,
-      allowedFormats,
-      maxFileSize: newSize,
-    });
+    const val = parseInt(e.target.value, 10);
+    setMaxFileSize(val);
+    notifyChange({ maxFileSize: val });
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadError('');
+    setUploading(true);
+    try {
+      const response = await coursesAPI.uploadHomeworkTaskFile(file);
+      const { url, filename } = response.data;
+      setTaskFileUrl(url);
+      setTaskFileName(filename);
+      notifyChange({ task_file_url: url, task_file_name: filename });
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Ошибка загрузки файла';
+      setUploadError(msg);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setTaskFileUrl('');
+    setTaskFileName('');
+    notifyChange({ task_file_url: '', task_file_name: '' });
+  };
+
+  const getFileIcon = (filename) => {
+    if (!filename) return 'bi-file-earmark';
+    const ext = filename.split('.').pop().toLowerCase();
+    if (ext === 'pdf') return 'bi-file-earmark-pdf';
+    if (['doc', 'docx'].includes(ext)) return 'bi-file-earmark-word';
+    if (['xls', 'xlsx'].includes(ext)) return 'bi-file-earmark-excel';
+    if (['ppt', 'pptx'].includes(ext)) return 'bi-file-earmark-ppt';
+    if (['zip', 'rar'].includes(ext)) return 'bi-file-earmark-zip';
+    if (ext === 'txt') return 'bi-file-earmark-text';
+    return 'bi-file-earmark';
   };
 
   return (
@@ -82,6 +120,62 @@ const HomeworkBlock = ({ data, onChange }) => {
           onChange={handleDescriptionChange}
           placeholder="Опишите задание: что нужно сделать, какие требования..."
         />
+      </div>
+
+      <div className="mb-3">
+        <label className="form-label">
+          <strong>Файл с заданием</strong>
+        </label>
+        {taskFileUrl ? (
+          <div className="d-flex align-items-center gap-2 p-2 border rounded bg-light">
+            <i className={`bi ${getFileIcon(taskFileName)} fs-5 text-primary`}></i>
+            <span className="text-truncate flex-grow-1 small">{taskFileName}</span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-danger"
+              onClick={handleRemoveFile}
+              title="Удалить файл"
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+        ) : (
+          <>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="d-none"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                onChange={handleFileSelect}
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    Загрузка...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-paperclip me-1"></i>
+                    Прикрепить файл задания
+                  </>
+                )}
+              </button>
+            </div>
+            {uploadError && (
+              <div className="text-danger small mt-1">{uploadError}</div>
+            )}
+            <div className="form-text">
+              PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, ZIP, RAR — до 50 МБ
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mb-3">
@@ -141,6 +235,13 @@ const HomeworkBlock = ({ data, onChange }) => {
       <div className="homework-config">
         <h6>Предпросмотр конфигурации:</h6>
         <ul className="mb-0">
+          {taskFileUrl && (
+            <li>
+              <strong>Файл задания:</strong>{' '}
+              <i className={`bi ${getFileIcon(taskFileName)} me-1`}></i>
+              {taskFileName}
+            </li>
+          )}
           <li>
             <strong>Форматы:</strong>{' '}
             {allowedFormats.length > 0

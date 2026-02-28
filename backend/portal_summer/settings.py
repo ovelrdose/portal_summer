@@ -76,23 +76,48 @@ TEMPLATES = [
 WSGI_APPLICATION = 'portal_summer.wsgi.application'
 
 # Database
-# Use SQLite for local development, PostgreSQL for Docker/production
-if os.getenv('USE_SQLITE', 'True').lower() == 'true':
+# Priority order:
+# 1. DATABASE_URL env variable (dj-database-url format) — recommended for production
+# 2. USE_SQLITE=False + individual POSTGRES_* variables — for Docker/explicit PostgreSQL
+# 3. Default: SQLite for local development without any DB configuration
+
+DATABASE_URL = os.getenv('DATABASE_URL', '')
+USE_SQLITE = os.getenv('USE_SQLITE', 'True').lower() == 'true'
+
+if DATABASE_URL:
+    # Parse DATABASE_URL: postgres://USER:PASSWORD@HOST:PORT/NAME
+    import urllib.parse as _urlparse
+    _url = _urlparse.urlparse(DATABASE_URL)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _url.path.lstrip('/'),
+            'USER': _url.username,
+            'PASSWORD': _url.password,
+            'HOST': _url.hostname,
+            'PORT': str(_url.port or 5432),
+            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
         }
     }
-else:
+elif not USE_SQLITE:
+    # Explicit PostgreSQL via individual environment variables
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('POSTGRES_DB', 'portal_summer'),
             'USER': os.getenv('POSTGRES_USER', 'postgres'),
             'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
-            'HOST': os.getenv('POSTGRES_HOST', 'db'),
+            'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
             'PORT': os.getenv('POSTGRES_PORT', '5432'),
+            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        }
+    }
+else:
+    # SQLite fallback — for local development without PostgreSQL
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 

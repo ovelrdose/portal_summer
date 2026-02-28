@@ -46,7 +46,11 @@ const BlockPreview = ({ blocks }) => {
   const renderVideoBlock = (block) => {
     if (!block.data?.provider || !block.data?.videoId) return null;
 
-    const embedUrl = getEmbedUrl(block.data.provider, block.data.videoId);
+    let privateKey = block.data.privateKey;
+    if (!privateKey && block.data.url) {
+      try { privateKey = new URL(block.data.url).searchParams.get('p') || null; } catch (e) {}
+    }
+    const embedUrl = getEmbedUrl(block.data.provider, block.data.videoId, { privateKey });
 
     return (
       <div className="preview-video">
@@ -123,6 +127,14 @@ const BlockPreview = ({ blocks }) => {
         <h4>📋 Домашнее задание</h4>
         <div className="preview-homework-content">{block.data.description}</div>
         <div className="preview-homework-meta">
+          {block.data.task_file_url && (
+            <div className="mb-2">
+              <a href={block.data.task_file_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary">
+                <i className="bi bi-download me-1"></i>
+                {block.data.task_file_name || 'Скачать файл задания'}
+              </a>
+            </div>
+          )}
           {block.data.deadline && (
             <div className="mb-2">
               <strong>Срок сдачи:</strong>{' '}

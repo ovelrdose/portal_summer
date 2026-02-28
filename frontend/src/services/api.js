@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const BACKEND_URL = API_URL.replace(/\/api\/?$/, '');
+export const DEFAULT_COVER_URL = `${BACKEND_URL}/static/images/default-course.jpg`;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -194,6 +196,15 @@ export const coursesAPI = {
     formData.append('image', file);
     if (sectionId) formData.append('section_id', sectionId);
     return api.post('/elements/upload_image/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  // Block Editor - Homework Task File Upload
+  uploadHomeworkTaskFile: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/elements/upload_task_file/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

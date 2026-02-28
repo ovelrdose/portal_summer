@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Button, Spinner, Collapse, Toast, ToastContainer } from 'react-bootstrap';
-import { coursesAPI } from '../../services/api';
+import { coursesAPI, DEFAULT_COVER_URL } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 const PortalPage = () => {
@@ -105,7 +105,11 @@ const PortalPage = () => {
 
                     {/* Right: image */}
                     <div className="card-image">
-                      <img src={course.image_url} alt={course.title} />
+                      <img
+                        src={course.image_url || DEFAULT_COVER_URL}
+                        alt={course.title}
+                        onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -171,19 +175,11 @@ const PortalPage = () => {
 
                   {/* Right: image */}
                   <div className="card-image">
-                    {(course.thumbnail_url || course.image_url) ? (
-                      <img
-                        src={course.thumbnail_url || course.image_url}
-                        alt={course.title}
-                      />
-                    ) : (
-                      <div
-                        className="w-100 h-100 d-flex align-items-center justify-content-center bg-light"
-                        style={{ minHeight: '160px' }}
-                      >
-                        <span className="text-muted" style={{ fontSize: '2rem' }}>&#128218;</span>
-                      </div>
-                    )}
+                    <img
+                      src={course.thumbnail_url || course.image_url || DEFAULT_COVER_URL}
+                      alt={course.title}
+                      onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+                    />
                   </div>
                 </div>
               ))}

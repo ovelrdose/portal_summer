@@ -4,7 +4,7 @@ import {
   Container, Button, Spinner, Collapse,
   Form, Alert, Badge, Modal, Toast, ToastContainer, Dropdown
 } from 'react-bootstrap';
-import { coursesAPI } from '../../services/api';
+import { coursesAPI, DEFAULT_COVER_URL } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import LockedContentAlert from '../../components/LockedContentAlert';
 import { isContentLocked, formatDateTimeDisplay } from '../../utils/dateUtils';
@@ -68,7 +68,7 @@ const CourseDetailPage = () => {
       setOpenSections(prev => {
         if (Object.keys(prev).length > 0) return prev;
         const init = {};
-        course.sections.forEach((s, i) => { init[s.id] = i === 0; });
+        course.sections.forEach((s) => { init[s.id] = false; });
         return init;
       });
     }
@@ -313,7 +313,12 @@ const CourseDetailPage = () => {
             <div className="preview-text" dangerouslySetInnerHTML={{ __html: course.description }} />
           </div>
           <div className="course-hero-image-wrap">
-            <img src={course.image_url} alt={course.title} className="course-detail-image" />
+            <img
+              src={course.image_url || DEFAULT_COVER_URL}
+              alt={course.title}
+              className="course-detail-image"
+              onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+            />
           </div>
         </div>
       </div>
@@ -327,7 +332,7 @@ const CourseDetailPage = () => {
               .map((section, index) => {
                 const stat = homeworkStats.find(s => s.section_id === section.id);
                 const isSectionLocked = !canEdit && isContentLocked(section.publish_datetime);
-                const isOpen = openSections[section.id] ?? index === 0;
+                const isOpen = openSections[section.id] ?? false;
 
                 return (
                   <div key={section.id} className="course-module-wrapper">
@@ -425,7 +430,7 @@ const CourseDetailPage = () => {
                                       {element.content_type === 'video' && element.data?.videoId && (
                                         <div>
                                           {element.data.title && !element.title && (
-                                            <p className="text-muted small mb-2">{element.data.title}</p>
+                                            <p className="element-subtitle">{element.data.title}</p>
                                           )}
                                           <div className="ratio ratio-16x9">
                                             <iframe
@@ -437,7 +442,13 @@ const CourseDetailPage = () => {
                                                   const [oid, vid] = videoId.split('_');
                                                   return `https://vk.com/video_ext.php?oid=${oid}&id=${vid}&hd=2`;
                                                 }
-                                                if (provider === 'rutube') return `https://rutube.ru/play/embed/${videoId}`;
+                                                if (provider === 'rutube') {
+                                                  let pk = element.data?.privateKey;
+                                                  if (!pk && element.data?.url) {
+                                                    try { pk = new URL(element.data.url).searchParams.get('p') || null; } catch (e) {}
+                                                  }
+                                                  return pk ? `https://rutube.ru/play/embed/${videoId}?p=${pk}` : `https://rutube.ru/play/embed/${videoId}`;
+                                                }
                                                 if (provider === 'dzen') return `https://dzen.ru/embed/${videoId}?from_block=partner&from=zen&mute=0&autoplay=0&tv=0`;
                                                 if (provider === 'custom') return videoId;
                                                 return '';
@@ -480,16 +491,44 @@ const CourseDetailPage = () => {
                                       {/* Homework */}
                                       {element.content_type === 'homework' && (
                                         <div>
-                                          {(element.data?.description || element.homework_description) && (
-                                            <p className="mb-2">{element.data?.description || element.homework_description}</p>
-                                          )}
-                                          {element.data?.deadline && (
-                                            <p className={`small mb-3 ${new Date(element.data.deadline) < new Date() && !element.my_submission ? 'text-danger' : 'text-muted'}`}>
-                                              Дедлайн: {new Date(element.data.deadline).toLocaleString('ru-RU')}
-                                              {new Date(element.data.deadline) < new Date() && !element.my_submission && (
-                                                <Badge bg="danger" className="ms-2">Просрочен</Badge>
+                                          {/* Yellow task card */}
+                                          {(element.data?.description || element.homework_description || element.data?.task_file_url || element.data?.deadline) && (
+                                            <div className="homework-card">
+                                              <div className="homework-card-header">
+                                                <i className="bi bi-clipboard2-check-fill"></i>
+                                                Домашнее задание
+                                              </div>
+                                              {(element.data?.description || element.homework_description) && (
+                                                <p className="element-description mb-3">{element.data?.description || element.homework_description}</p>
                                               )}
-                                            </p>
+                                              {element.data?.task_file_url && (
+                                                <div className="mb-3">
+                                                  <a
+                                                    href={element.data.task_file_url}
+                                                    download={element.data.task_file_name || true}
+                                                    className="btn btn-sm btn-outline-primary"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                  >
+                                                    <i className="bi bi-download me-1"></i>
+                                                    Скачать файл задания
+                                                    {element.data.task_file_name && (
+                                                      <span className="ms-1 text-muted">({element.data.task_file_name})</span>
+                                                    )}
+                                                  </a>
+                                                </div>
+                                              )}
+                                              {element.data?.deadline && (() => {
+                                                const isOverdue = new Date(element.data.deadline) < new Date() && !element.my_submission;
+                                                return (
+                                                  <p className={`element-meta-row mb-0${isOverdue ? ' text-danger' : ''}`}>
+                                                    <i className={`bi ${isOverdue ? 'bi-exclamation-circle-fill' : 'bi-clock'}`}></i>
+                                                    <span>Срок сдачи: {new Date(element.data.deadline).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                    {isOverdue && <Badge bg="danger" className="ms-1">Просрочен</Badge>}
+                                                  </p>
+                                                );
+                                              })()}
+                                            </div>
                                           )}
 
                                           {element.my_submission ? (
@@ -560,7 +599,10 @@ const CourseDetailPage = () => {
                                               </button>
                                             )
                                           ) : (
-                                            <p className="text-muted small mb-0">Подпишитесь на курс, чтобы сдать задание</p>
+                                            <p className="element-meta-row mb-0">
+                                              <i className="bi bi-info-circle"></i>
+                                              <span>Подпишитесь на курс, чтобы сдать задание</span>
+                                            </p>
                                           )}
                                         </div>
                                       )}

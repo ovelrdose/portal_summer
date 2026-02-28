@@ -65,20 +65,28 @@ export const parseVideoUrl = (url) => {
     }
   }
 
-  // Rutube patterns
+  // Rutube patterns (handles public and private videos)
   const rutubePatterns = [
-    /rutube\.ru\/video\/([a-zA-Z0-9]+)/,
-    /rutube\.ru\/play\/embed\/(\d+)/
+    /rutube\.ru\/video\/(?:private\/)?([a-zA-Z0-9]+)/,
+    /rutube\.ru\/play\/embed\/([a-zA-Z0-9]+)/
   ];
 
   for (const pattern of rutubePatterns) {
     const match = trimmedUrl.match(pattern);
     if (match) {
       const videoId = match[1];
+      let privateKey = null;
+      try {
+        privateKey = new URL(trimmedUrl).searchParams.get('p') || null;
+      } catch (e) {}
+      const embedUrl = privateKey
+        ? `https://rutube.ru/play/embed/${videoId}?p=${privateKey}`
+        : `https://rutube.ru/play/embed/${videoId}`;
       return {
         provider: 'rutube',
         videoId,
-        embedUrl: `https://rutube.ru/play/embed/${videoId}`
+        embedUrl,
+        privateKey,
       };
     }
   }
@@ -142,7 +150,7 @@ export const extractUrlFromIframe = (iframeCode) => {
  * @param {string} videoId - ID видео или embed URL
  * @returns {string} - URL для iframe
  */
-export const getEmbedUrl = (provider, videoId) => {
+export const getEmbedUrl = (provider, videoId, options = {}) => {
   if (provider === 'youtube') {
     return `https://www.youtube.com/embed/${videoId}`;
   }
@@ -154,7 +162,10 @@ export const getEmbedUrl = (provider, videoId) => {
     return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&hd=2`;
   }
   if (provider === 'rutube') {
-    return `https://rutube.ru/play/embed/${videoId}`;
+    const pk = options.privateKey;
+    return pk
+      ? `https://rutube.ru/play/embed/${videoId}?p=${pk}`
+      : `https://rutube.ru/play/embed/${videoId}`;
   }
   if (provider === 'dzen') {
     return `https://dzen.ru/embed/${videoId}?from_block=partner&from=zen&mute=0&autoplay=0&tv=0`;

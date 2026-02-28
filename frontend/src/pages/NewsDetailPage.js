@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Container, Spinner, Badge, Button } from 'react-bootstrap';
-import { newsAPI } from '../services/api';
+import { newsAPI, DEFAULT_COVER_URL } from '../services/api';
 import BlockPreview from '../components/BlockEditor/preview/BlockPreview';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -178,28 +178,27 @@ const NewsDetailPage = () => {
           </div>
 
           {/* Правая часть: изображение с blob-маской */}
-          {news.image && (
-            <div style={{ flex: '0 0 auto', zIndex: 1 }}>
-              <div
+          <div style={{ flex: '0 0 auto', zIndex: 1 }}>
+            <div
+              style={{
+                width: 'clamp(200px, 30vw, 320px)',
+                height: 'clamp(170px, 25vw, 270px)',
+                position: 'relative',
+              }}
+            >
+              <img
+                src={news.image || DEFAULT_COVER_URL}
+                alt={news.title}
                 style={{
-                  width: 'clamp(200px, 30vw, 320px)',
-                  height: 'clamp(170px, 25vw, 270px)',
-                  position: 'relative',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  clipPath: 'url(#news-blob-mask)',
                 }}
-              >
-                <img
-                  src={news.image}
-                  alt={news.title}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    clipPath: 'url(#news-blob-mask)',
-                  }}
-                />
-              </div>
+                onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+              />
             </div>
-          )}
+          </div>
         </div>
 
         {/* Волна снизу */}

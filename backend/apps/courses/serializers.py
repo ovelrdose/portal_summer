@@ -19,7 +19,7 @@ class BlockDataValidator:
             r'(?:vk\.com/video|vkvideo\.ru/video)(-?\d+_\d+)'
         ),
         'rutube': re.compile(
-            r'rutube\.ru/(?:video|play/embed)/([a-zA-Z0-9]+)'
+            r'rutube\.ru/(?:video/(?:private/)?|play/embed/)([a-zA-Z0-9]+)'
         ),
         'dzen': re.compile(
             r'dzen\.ru/(?:video/watch|embed)/([a-zA-Z0-9]+)'
@@ -120,6 +120,14 @@ class BlockDataValidator:
         data['provider'] = provider
         data['video_id'] = video_id
 
+        # Для приватных видео RuTube сохраняем ключ доступа
+        if provider == 'rutube':
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(url).query)
+            private_key = qs.get('p', [None])[0]
+            if private_key:
+                data['privateKey'] = private_key
+
         return data
 
     @classmethod
@@ -169,6 +177,15 @@ class BlockDataValidator:
                         )
                 except ValueError:
                     raise serializers.ValidationError("Неверный формат даты для deadline")
+
+        # task_file_url и task_file_name опциональны
+        task_file_url = data.get('task_file_url')
+        if task_file_url is not None and not isinstance(task_file_url, str):
+            raise serializers.ValidationError("task_file_url должен быть строкой")
+
+        task_file_name = data.get('task_file_name')
+        if task_file_name is not None and not isinstance(task_file_name, str):
+            raise serializers.ValidationError("task_file_name должен быть строкой")
 
         return data
 

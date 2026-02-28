@@ -32,21 +32,13 @@ class AlbumListSerializer(serializers.ModelSerializer):
         ]
 
     def get_cover_url(self, obj: Album):
-        """Возвращает полный URL обложки альбома"""
+        """Возвращает полный URL обложки альбома (только если обложка задана явно)"""
+        if not obj.cover:
+            return None
         request = self.context.get('request')
-
-        if obj.cover:
-            if request:
-                return request.build_absolute_uri(obj.cover.url)
-            return obj.cover.url
-
-        first_photo = obj.photos.first()
-        if first_photo and first_photo.image:
-            if request:
-                return request.build_absolute_uri(first_photo.image.url)
-            return first_photo.image.url
-
-        return None
+        if request:
+            return request.build_absolute_uri(obj.cover.url)
+        return obj.cover.url
 
     def get_creator_name(self, obj: Album) -> str:
         """Возвращает полное имя создателя альбома"""

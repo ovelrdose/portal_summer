@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner, Form, Badge, Nav } from 'react-bootstrap';
-import { newsAPI } from '../services/api';
+import { newsAPI, DEFAULT_COVER_URL } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const NewsPage = () => {
@@ -205,11 +205,13 @@ const NewsPage = () => {
                       )}
                     </div>
                   </div>
-                  {item.image && (
-                    <div className="card-image">
-                      <img src={item.image} alt={item.title} />
-                    </div>
-                  )}
+                  <div className="card-image">
+                    <img
+                      src={item.image || DEFAULT_COVER_URL}
+                      alt={item.title}
+                      onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+                    />
+                  </div>
                 </Card>
               </Col>
             ))

@@ -57,6 +57,7 @@ const VideoBlock = ({ data, onChange }) => {
         title,
         provider: parsed?.provider || null,
         videoId: parsed?.videoId || null,
+        privateKey: parsed?.privateKey || null,
       });
     }
   };
@@ -73,7 +74,7 @@ const VideoBlock = ({ data, onChange }) => {
   };
 
   const videoData = parseVideoUrl(url);
-  const embedUrl = videoData ? getEmbedUrl(videoData.provider, videoData.videoId) : null;
+  const embedUrl = videoData ? videoData.embedUrl : null;
 
   return (
     <div className="video-block">

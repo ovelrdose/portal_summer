@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner } from 'react-bootstrap';
-import { newsAPI, galleryAPI } from '../services/api';
+import { newsAPI, galleryAPI, DEFAULT_COVER_URL } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const HomePage = () => {
@@ -119,14 +119,13 @@ const HomePage = () => {
                         </Button>
                       </div>
                     </div>
-                    {item.image && (
-                      <div className="card-image">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                        />
-                      </div>
-                    )}
+                    <div className="card-image">
+                      <img
+                        src={item.image || DEFAULT_COVER_URL}
+                        alt={item.title}
+                        onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
+                      />
+                    </div>
                   </Card>
                 </Col>
               ))
@@ -172,8 +171,9 @@ const HomePage = () => {
                     </div>
                     <div className="card-image">
                       <img
-                        src={album.cover_url}
+                        src={album.cover_url || DEFAULT_COVER_URL}
                         alt={album.title}
+                        onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COVER_URL; }}
                       />
                     </div>
                   </Card>
