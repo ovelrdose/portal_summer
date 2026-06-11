@@ -1,0 +1,57 @@
+# 1. Имя пайплайна, которое ты увидишь в интерфейсе GitHub
+name: Django-React CI Pipeline
+
+# 2. Триггеры: КОГДА запускать этот пайплайн
+on:
+  push:
+    branches: [ "main", "master" ] # Запускать при пуше в главную ветку
+  pull_request:
+    branches: [ "main", "master" ] # Запускать при создании запроса на слияние
+
+# 3. Задачи (Jobs): ЧТО именно делать
+jobs:
+  # Задача №1: Проверка кода (Linting)
+  lint-python:
+    name: Check Python Code
+    runs-on: ubuntu-latest # GitHub выдает нам свежую Ubuntu VM
+    
+    steps:
+      # Шаг А: Скачать код из репозитория на эту временную VM
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Шаг Б: Установить нужную версию Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' # Замени на свою версию, если другая
+
+      # Шаг В: Установить зависимости и запустить проверку
+      - name: Install dependencies and run flake8
+        run: |
+          # Переходим в папку бэкенда (измени 'backend' на имя своей папки)
+          cd backend 
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+          # Запускаем линтер. Если он найдет ошибки, шаг упадет, и пайплайн станет красным
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  # Задача №2: Сборка Docker образов
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: lint-python # Эта задача начнется ТОЛЬКО если lint-python прошел успешно (зеленый)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Backend Docker Image
+        run: |
+          # Пытаемся собрать образ. Если Dockerfile кривой, здесь будет ошибка
+          docker build -t my-django-app ./backend # Укажи путь к папке с Dockerfile бэкенда
+
+      - name: Build Frontend Docker Image
+        run: |
+          docker build -t my-react-app ./frontend # Укажи путь к папке с Dockerfile фронтенда
