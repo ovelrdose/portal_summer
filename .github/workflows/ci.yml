@@ -1,57 +1,124 @@
-# 1. Имя пайплайна, которое ты увидишь в интерфейсе GitHub
-name: Django-React CI Pipeline
+name: Full Django-React CI/CD Pipeline
 
-# 2. Триггеры: КОГДА запускать этот пайплайн
+# 1. Триггеры: когда запускать
 on:
   push:
-    branches: [ "main", "master" ] # Запускать при пуше в главную ветку
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main", "master" ] # Запускать при создании запроса на слияние
+    branches: [ "main", "master" ]
 
-# 3. Задачи (Jobs): ЧТО именно делать
 jobs:
-  # Задача №1: Проверка кода (Linting)
+  # ==========================================
+  # ЭТАП 1: CI (Проверка качества кода)
+  # ==========================================
   lint-python:
-    name: Check Python Code
-    runs-on: ubuntu-latest # GitHub выдает нам свежую Ubuntu VM
-    
+    name: Lint Python Code
+    runs-on: ubuntu-latest
     steps:
-      # Шаг А: Скачать код из репозитория на эту временную VM
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # Шаг Б: Установить нужную версию Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12' # Замени на свою версию, если другая
+          python-version: '3.12' # Укажи свою версию Python
 
-      # Шаг В: Установить зависимости и запустить проверку
-      - name: Install dependencies and run flake8
+      - name: Install dependencies and run linter
         run: |
-          # Переходим в папку бэкенда (измени 'backend' на имя своей папки)
-          cd backend 
+          cd backend # <--- ЗАМЕНИ на имя папки с твоим Django проектом
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install flake8
-          # Запускаем линтер. Если он найдет ошибки, шаг упадет, и пайплайн станет красным
+          # Запускаем проверку. Если будут ошибки, пайплайн упадет здесь
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
-  # Задача №2: Сборка Docker образов
-  build-docker:
-    name: Build Docker Images
+  # ==========================================
+  # ЭТАП 2: CI (Тестовая сборка Docker образов)
+  # ==========================================
+  build-docker-test:
+    name: Build Docker Images (Test)
     runs-on: ubuntu-latest
-    needs: lint-python # Эта задача начнется ТОЛЬКО если lint-python прошел успешно (зеленый)
-
+    needs: lint-python # Ждем успешного завершения линтинга
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Backend Docker Image
+      - name: Build Backend Image
         run: |
-          # Пытаемся собрать образ. Если Dockerfile кривой, здесь будет ошибка
-          docker build -t my-django-app ./backend # Укажи путь к папке с Dockerfile бэкенда
+          docker build -t test-backend ./backend # <--- ЗАМЕНИ путь к папке с Dockerfile бэкенда
 
-      - name: Build Frontend Docker Image
+      - name: Build Frontend Image
         run: |
-          docker build -t my-react-app ./frontend # Укажи путь к папке с Dockerfile фронтенда
+          docker build -t test-frontend ./frontend # <--- ЗАМЕНИ путь к папке с Dockerfile фронтенда
+
+  # ==========================================
+  # ЭТАП 3: CD (Публикация и Деплой на сервер)
+  # ==========================================
+  deploy-to-server:
+    name: Push to Registry and Deploy
+    runs-on: ubuntu-latest
+    needs: build-docker-test
+    # ВАЖНО: Деплоим только при пуше в главную ветку, а не при каждом pull request
+    if: github.ref == 'refs/heads/main/DevOps' || github.ref == 'refs/heads/master/DevOps'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Шаг 3.1: Авторизация в Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Шаг 3.2: Сборка и отправка образа Бэкенда в Docker Hub
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend # <--- ЗАМЕНИ путь к папке с Dockerfile бэкенда
+          push: true
+          tags: ovelrdose/my-django-app:latest # <--- ЗАМЕНИ на свой логин
+
+      # Шаг 3.3: Сборка и отправка образа Фронтенда в Docker Hub
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend # <--- ЗАМЕНИ путь к папке с Dockerfile фронтенда
+          push: true
+          build-args: |
+            REACT_APP_API_URL=http://${{ secrets.SERVER_IP }}/api
+          tags: ${{ secrets.DOCKER_USERNAME }}/my-react-app:latest # <--- ЗАМЕНИ на свой логин
+
+      # Шаг 3.4: Копирование файла конфигурации на сервер (SCP)
+      - name: Copy docker-compose.prod.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.prod.yml" # Файл из корня твоего Git репозитория
+          target: "/opt/myapp/"             # <--- ЗАМЕНИ на реальную папку на твоем сервере
+          strip_components: 1 # Убирает лишнюю вложенность при копировании
+
+      # Шаг 3.5: Выполнение команд на сервере по SSH
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🚀 Starting deployment..."
+            cd /opt/myapp # <--- ЗАМЕНИ на реальную папку на твоем сервере
+            
+            # 1. Скачиваем свежие образы из Docker Hub
+            docker compose -f docker-compose.prod.yml pull
+            
+            # 2. Перезапускаем контейнеры, заставляя их использовать новые образы
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
+            
+            # 3. Чистим старые, неиспользуемые образы, чтобы не забивать диск сервера
+            docker image prune -f
+            
+            echo "Deployment finished successfully!"

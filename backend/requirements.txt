@@ -27,3 +27,4 @@ python-dotenv>=1.0,<2.0
 
 # Development
 django-debug-toolbar>=4.2,<5.0
+gunicorn
