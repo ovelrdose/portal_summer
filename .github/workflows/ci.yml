@@ -96,9 +96,9 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.prod.yml" # Файл из корня твоего Git репозитория
-          target: "/opt/myapp/"             # <--- ЗАМЕНИ на реальную папку на твоем сервере
-          strip_components: 1 # Убирает лишнюю вложенность при копировании
-
+          target: "/opt/myapp"             # <--- ЗАМЕНИ на реальную папку на твоем сервере
+          overwrite: true
+          debug: true
       # Шаг 3.5: Выполнение команд на сервере по SSH
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
