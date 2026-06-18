@@ -3,9 +3,9 @@ name: Full Django-React CI/CD Pipeline
 # 1. Триггеры: когда запускать
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "DevOps" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "DevOps" ]
 
 jobs:
   # ==========================================
