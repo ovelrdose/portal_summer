@@ -85,7 +85,7 @@ jobs:
           context: ./frontend # <--- ЗАМЕНИ путь к папке с Dockerfile фронтенда
           push: true
           build-args: |
-            REACT_APP_API_URL=http://${{ secrets.SERVER_IP }}/api
+            REACT_APP_API_URL=/api
           tags: ${{ secrets.DOCKER_USERNAME }}/my-react-app:latest # <--- ЗАМЕНИ на свой логин
 
       # Шаг 3.4: Копирование файла конфигурации на сервер (SCP)
