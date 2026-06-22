@@ -4,12 +4,10 @@ services:
   db:
     image: postgres:15-alpine
     restart: always
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
@@ -21,54 +19,49 @@ services:
   backend:
     image: ${DOCKER_USERNAME}/my-django-app:latest
     restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn portal_summer.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    env_file:
+      - .env
     environment:
-      SECRET_KEY: ${SECRET_KEY}
-      DEBUG: "False"
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
-      ALLOWED_HOSTS: "*"
-      CORS_ALLOWED_ORIGINS: http://${SERVER_IP},http://localhost
-      USE_SQLITE: "False"
-      DB_CONN_MAX_AGE: "60"
-      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-admin}
-      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
-      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
       EMAIL_HOST_USER: ${EMAIL_HOST_USER}
       EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
-      EMAIL_PORT: ${EMAIL_PORT:-465}
-      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-False}
-      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-True}
-
+      DEBUG: "False"
+      POSTGRES_HOST: db
+      ALLOWED_HOSTS: "*"
+      CORS_ALLOWED_ORIGINS: http://${SERVER_IP},http://localhost
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY}
     volumes:
       - media_data:/app/media
+      - static_data:/app/staticfiles
     depends_on:
       db:
         condition: service_healthy
     networks:
       - frontend-net
       - backend-net
-    dns:
-      - 77.88.8.8
-      - 8.8.8.8
 
   frontend:
     image: ${DOCKER_USERNAME}/my-react-app:latest
     restart: always
     ports:
       - "80:80"
+    volumes:
+      - media_data:/usr/share/nginx/html/media
+      - static_data:/usr/share/nginx/html/static
     depends_on:
       - backend
-    volumes:
-      - media_data:/app/media
     networks:
       - frontend-net
 
 volumes:
   postgres_data:
   media_data:
+  static_data:
 
 networks:
   frontend-net:
