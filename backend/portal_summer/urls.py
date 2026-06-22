@@ -23,10 +23,9 @@ urlpatterns = [
     # CKEditor
     path('ckeditor5/', include('django_ckeditor_5.urls')),
 ]
+# ВСЕГДА добавляем медиа (и в dev, и в prod)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+# Статику добавляем только в dev (в prod её отдает Nginx/WhiteNoise)
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-else:
-    # В production тоже нужно отдавать медиа!
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
