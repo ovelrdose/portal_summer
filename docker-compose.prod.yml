@@ -61,6 +61,8 @@ services:
       - "80:80"
     depends_on:
       - backend
+    volumes:
+      - media_data:/app/media
     networks:
       - frontend-net
 
