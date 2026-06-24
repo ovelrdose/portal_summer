@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}Подтверждение email в Portal Summer{% endautoescape %}
