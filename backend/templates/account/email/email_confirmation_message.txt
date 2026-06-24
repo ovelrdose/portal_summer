@@ -1,13 +1,57 @@
 {% load account %}{% load i18n %}{% autoescape off %}
-Привет, {{ user.get_username }}! 👋
-
-Спасибо за регистрацию в Portal Summer!
-
-Для подтверждения твоего email, пожалуйста, перейди по ссылке:
-{{ activate_url }}
-
-Если ты не регистрировался — просто проигнорируй это письмо.
-
-С уважением,
-Команда Portal Summer
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подтверждение email</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Portal Summer</h1>
+    </div>
+    
+    <div style="background-color: white; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h2 style="color: #333; margin-top: 0; font-size: 24px;">Подтверждение email</h2>
+        
+        <p style="margin-bottom: 20px;">Привет, <strong>{{ user.get_username }}</strong>! 👋</p>
+        
+        <p style="margin-bottom: 20px;">Спасибо за регистрацию на образовательном портале <strong>Portal Summer</strong>!</p>
+        
+        <p style="margin-bottom: 30px;">Для подтверждения твоего email, пожалуйста, нажми на кнопку ниже:</p>
+        
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="{{ activate_url }}" 
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                      color: white; 
+                      padding: 15px 40px; 
+                      text-decoration: none; 
+                      border-radius: 5px; 
+                      display: inline-block; 
+                      font-weight: bold;
+                      font-size: 16px;">
+                Подтвердить email
+            </a>
+        </div>
+        
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            Если кнопка не работает, скопируй эту ссылку в браузер:<br>
+            <a href="{{ activate_url }}" style="color: #667eea; word-break: break-all;">
+                {{ activate_url }}
+            </a>
+        </p>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;">
+            <p style="color: #666; font-size: 14px;">
+                Если ты не регистрировался на нашем портале — просто проигнорируй это письмо.
+            </p>
+        </div>
+        
+        <p style="color: #999; font-size: 12px; margin-top: 40px; text-align: center;">
+            С уважением,<br>
+            Команда образовательного портала Portal Summer
+        </p>
+    </div>
+</body>
+</html>
 {% endautoescape %}
