@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
+  backend:
+    image: ${DOCKER_USERNAME}/my-django-app:latest
+    restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn portal_summer.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    env_file:
+      - .env
+    environment:
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+      DEBUG: "False"
+      POSTGRES_HOST: db
+      ALLOWED_HOSTS: "*"
+      CORS_ALLOWED_ORIGINS: http://${SERVER_IP},http://localhost
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY}
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - frontend-net
+      - backend-net
+
+  frontend:
+    image: ${DOCKER_USERNAME}/my-react-app:latest
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - media_data:/usr/share/nginx/html/media
+      - static_data:/usr/share/nginx/html/static
+    depends_on:
+      - backend
+    networks:
+      - frontend-net
+
+volumes:
+  postgres_data:
+  media_data:
+  static_data:
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
